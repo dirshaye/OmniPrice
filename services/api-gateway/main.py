@@ -4,7 +4,7 @@ from app.grpc_clients import GrpcClients
 
 app = FastAPI(
     title="API Gateway",
-    description="The main entry point for the OmniPriceX API.",
+    description="REST API gateway serving as the main entry point for OmniPriceX microservices architecture, routing requests via gRPC to backend services.",
     version="0.1.0",
 )
 

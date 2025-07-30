@@ -13,7 +13,7 @@ from concurrent import futures
 def create_app():
     app = FastAPI(
         title="Competitor Service",
-        description="Manages competitors and their products.",
+        description="Competitor analysis microservice managing competitor data, product tracking, and market intelligence for dynamic pricing decisions.",
         version="0.1.0",
     )
 

@@ -8,7 +8,7 @@ from concurrent import futures
 def create_app():
     app = FastAPI(
         title="LLM Assistant Service",
-        description="Provides LLM-powered insights and recommendations.",
+        description="AI-powered assistant microservice providing intelligent pricing recommendations, market insights, and optimization suggestions using large language models.",
         version="0.1.0",
     )
     return app

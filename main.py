@@ -34,7 +34,7 @@ async def lifespan(app: FastAPI):
 # Create FastAPI app
 app = FastAPI(
     title=settings.PROJECT_NAME,
-    description="AI-powered dynamic pricing system for e-commerce",
+    description="AI-powered dynamic pricing system built with microservices architecture using FastAPI, MongoDB Atlas, and gRPC",
     version="1.0.0",
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     lifespan=lifespan

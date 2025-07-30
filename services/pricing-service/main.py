@@ -13,7 +13,7 @@ from concurrent import futures
 def create_app():
     app = FastAPI(
         title="Pricing Service",
-        description="Manages pricing rules and strategies.",
+        description="AI-powered pricing engine microservice managing dynamic pricing rules, strategies, and optimization algorithms.",
         version="0.1.0",
     )
 

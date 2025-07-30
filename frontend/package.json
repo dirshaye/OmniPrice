@@ -1,7 +1,7 @@
 {
   "name": "omnipricex-frontend",
   "version": "1.0.0",
-  "description": "Frontend for OmniPriceX, an AI-powered dynamic pricing system.",
+  "description": "React frontend for OmniPriceX - AI-powered dynamic pricing system built with microservices architecture using FastAPI, MongoDB Atlas, and gRPC.",
   "main": "src/index.js",
   "private": true,
   "scripts": {

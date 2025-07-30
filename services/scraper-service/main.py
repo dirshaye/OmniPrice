@@ -13,7 +13,7 @@ from concurrent import futures
 def create_app():
     app = FastAPI(
         title="Scraper Service",
-        description="Manages scraping jobs and data.",
+        description="Web scraping microservice managing automated data collection jobs for competitor pricing and market data analysis.",
         version="0.1.0",
     )
 

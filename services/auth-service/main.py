@@ -13,7 +13,7 @@ from concurrent import futures
 def create_app():
     app = FastAPI(
         title="Auth Service",
-        description="Manages user authentication and authorization.",
+        description="Authentication and authorization microservice providing JWT-based security for the OmniPriceX platform.",
         version="0.1.0",
     )
 
