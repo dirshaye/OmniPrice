@@ -1,0 +1,293 @@
+syntax = "proto3";
+
+package omnipricex.pricing;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/struct.proto";
+
+// Pricing Service Definition
+service PricingService {
+    // Price recommendations
+    rpc RecommendPrice(PriceRecommendationRequest) returns (PriceRecommendationResponse);
+    rpc BulkRecommendPrices(BulkPriceRecommendationRequest) returns (BulkPriceRecommendationResponse);
+    
+    // Pricing rules
+    rpc CreatePricingRule(CreatePricingRuleRequest) returns (PricingRuleResponse);
+    rpc GetPricingRule(GetPricingRuleRequest) returns (PricingRuleResponse);
+    rpc UpdatePricingRule(UpdatePricingRuleRequest) returns (PricingRuleResponse);
+    rpc DeletePricingRule(DeletePricingRuleRequest) returns (google.protobuf.Empty);
+    rpc ListPricingRules(ListPricingRulesRequest) returns (ListPricingRulesResponse);
+    rpc ExecutePricingRule(ExecutePricingRuleRequest) returns (ExecutePricingRuleResponse);
+    
+    // Pricing decisions
+    rpc CreatePricingDecision(CreatePricingDecisionRequest) returns (PricingDecisionResponse);
+    rpc ApprovePricingDecision(ApprovePricingDecisionRequest) returns (PricingDecisionResponse);
+    rpc RejectPricingDecision(RejectPricingDecisionRequest) returns (PricingDecisionResponse);
+    rpc ListPricingDecisions(ListPricingDecisionsRequest) returns (ListPricingDecisionsResponse);
+    
+    // Price history
+    rpc GetPriceHistory(GetPriceHistoryRequest) returns (GetPriceHistoryResponse);
+    rpc RecordPriceChange(RecordPriceChangeRequest) returns (google.protobuf.Empty);
+}
+
+// Messages
+message PricingRule {
+    string id = 1;
+    string name = 2;
+    string description = 3;
+    string rule_type = 4;
+    repeated string product_ids = 5;
+    repeated string categories = 6;
+    repeated string brands = 7;
+    repeated string tags = 8;
+    google.protobuf.Struct parameters = 9;
+    google.protobuf.Struct conditions = 10;
+    bool is_active = 11;
+    int32 priority = 12;
+    bool schedule_enabled = 13;
+    string schedule_cron = 14;
+    string timezone = 15;
+    google.protobuf.Timestamp last_executed = 16;
+    int32 execution_count = 17;
+    int32 success_count = 18;
+    google.protobuf.Timestamp created_at = 19;
+    google.protobuf.Timestamp updated_at = 20;
+    string created_by = 21;
+}
+
+message PricingDecision {
+    string id = 1;
+    string product_id = 2;
+    string product_name = 3;
+    string product_sku = 4;
+    double old_price = 5;
+    double new_price = 6;
+    double price_change = 7;
+    double price_change_percentage = 8;
+    string decision_source = 9;
+    string applied_rule_id = 10;
+    string applied_rule_name = 11;
+    double confidence_score = 12;
+    string reasoning = 13;
+    google.protobuf.Struct supporting_data = 14;
+    string status = 15;
+    string approved_by = 16;
+    google.protobuf.Timestamp approved_at = 17;
+    string rejection_reason = 18;
+    google.protobuf.Timestamp applied_at = 19;
+    google.protobuf.Timestamp timestamp = 20;
+}
+
+message PriceHistory {
+    string id = 1;
+    string product_id = 2;
+    string product_sku = 3;
+    string competitor_id = 4;
+    string competitor_name = 5;
+    double our_price = 6;
+    double competitor_price = 7;
+    double price_difference = 8;
+    double price_difference_percentage = 9;
+    google.protobuf.Timestamp timestamp = 10;
+    string reason = 11;
+    google.protobuf.Struct market_conditions = 12;
+    string notes = 13;
+}
+
+message PriceRecommendation {
+    string product_id = 1;
+    double current_price = 2;
+    double recommended_price = 3;
+    double confidence = 4;
+    string reasoning = 5;
+    google.protobuf.Struct supporting_data = 6;
+    repeated string applied_rules = 7;
+    google.protobuf.Struct competitor_analysis = 8;
+    google.protobuf.Struct estimated_impact = 9;
+    google.protobuf.Timestamp timestamp = 10;
+}
+
+// Request/Response messages
+message PriceRecommendationRequest {
+    string product_id = 1;
+    repeated string rule_ids = 2;
+    bool include_competitor_analysis = 3;
+    bool include_impact_estimation = 4;
+}
+
+message PriceRecommendationResponse {
+    bool success = 1;
+    string message = 2;
+    PriceRecommendation recommendation = 3;
+}
+
+message BulkPriceRecommendationRequest {
+    repeated string product_ids = 1;
+    repeated string categories = 2;
+    repeated string brands = 3;
+    repeated string rule_ids = 4;
+    bool include_competitor_analysis = 5;
+    double confidence_threshold = 6;
+}
+
+message BulkPriceRecommendationResponse {
+    bool success = 1;
+    string message = 2;
+    repeated PriceRecommendation recommendations = 3;
+    int32 total_processed = 4;
+    int32 total_recommended = 5;
+}
+
+message CreatePricingRuleRequest {
+    string name = 1;
+    string description = 2;
+    string rule_type = 3;
+    repeated string product_ids = 4;
+    repeated string categories = 5;
+    repeated string brands = 6;
+    repeated string tags = 7;
+    google.protobuf.Struct parameters = 8;
+    google.protobuf.Struct conditions = 9;
+    int32 priority = 10;
+    bool schedule_enabled = 11;
+    string schedule_cron = 12;
+    string timezone = 13;
+    string created_by = 14;
+}
+
+message GetPricingRuleRequest {
+    string id = 1;
+}
+
+message UpdatePricingRuleRequest {
+    string id = 1;
+    optional string name = 2;
+    optional string description = 3;
+    repeated string product_ids = 4;
+    repeated string categories = 5;
+    repeated string brands = 6;
+    repeated string tags = 7;
+    google.protobuf.Struct parameters = 8;
+    google.protobuf.Struct conditions = 9;
+    optional bool is_active = 10;
+    optional int32 priority = 11;
+    optional bool schedule_enabled = 12;
+    optional string schedule_cron = 13;
+    optional string timezone = 14;
+}
+
+message DeletePricingRuleRequest {
+    string id = 1;
+}
+
+message ListPricingRulesRequest {
+    int32 page = 1;
+    int32 limit = 2;
+    optional string rule_type = 3;
+    optional bool is_active = 4;
+}
+
+message ListPricingRulesResponse {
+    repeated PricingRule rules = 1;
+    int32 total = 2;
+    int32 page = 3;
+    int32 limit = 4;
+    bool has_next = 5;
+}
+
+message ExecutePricingRuleRequest {
+    string rule_id = 1;
+    repeated string product_ids = 2;
+    bool auto_apply = 3;
+    string executed_by = 4;
+}
+
+message ExecutePricingRuleResponse {
+    bool success = 1;
+    string message = 2;
+    int32 total_processed = 3;
+    int32 decisions_created = 4;
+    int32 decisions_applied = 5;
+    repeated string error_messages = 6;
+}
+
+message CreatePricingDecisionRequest {
+    string product_id = 1;
+    double old_price = 2;
+    double new_price = 3;
+    string decision_source = 4;
+    string applied_rule_id = 5;
+    double confidence_score = 6;
+    string reasoning = 7;
+    google.protobuf.Struct supporting_data = 8;
+}
+
+message ApprovePricingDecisionRequest {
+    string decision_id = 1;
+    string approved_by = 2;
+}
+
+message RejectPricingDecisionRequest {
+    string decision_id = 1;
+    string rejected_by = 2;
+    string rejection_reason = 3;
+}
+
+message ListPricingDecisionsRequest {
+    int32 page = 1;
+    int32 limit = 2;
+    optional string product_id = 3;
+    optional string status = 4;
+    optional string decision_source = 5;
+}
+
+message ListPricingDecisionsResponse {
+    repeated PricingDecision decisions = 1;
+    int32 total = 2;
+    int32 page = 3;
+    int32 limit = 4;
+    bool has_next = 5;
+}
+
+message GetPriceHistoryRequest {
+    string product_id = 1;
+    int32 days_back = 2;
+    bool include_competitor_prices = 3;
+    int32 page = 4;
+    int32 limit = 5;
+}
+
+message GetPriceHistoryResponse {
+    bool success = 1;
+    string message = 2;
+    repeated PriceHistory entries = 3;
+    int32 total = 4;
+    int32 page = 5;
+    int32 limit = 6;
+    bool has_next = 7;
+}
+
+message RecordPriceChangeRequest {
+    string product_id = 1;
+    string product_sku = 2;
+    string competitor_id = 3;
+    string competitor_name = 4;
+    double our_price = 5;
+    double competitor_price = 6;
+    string reason = 7;
+    google.protobuf.Struct market_conditions = 8;
+    string notes = 9;
+}
+
+message PricingRuleResponse {
+    bool success = 1;
+    string message = 2;
+    PricingRule rule = 3;
+}
+
+message PricingDecisionResponse {
+    bool success = 1;
+    string message = 2;
+    PricingDecision decision = 3;
+}

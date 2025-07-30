@@ -1,0 +1,85 @@
+version: '3.8'
+
+services:
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  api-gateway:
+    build: ./services/api-gateway
+    ports:
+      - "8000:8000"
+    depends_on:
+      - product-service
+      - pricing-service
+      - scraper-service
+      - competitor-service
+      - llm-assistant-service
+      - auth-service
+    environment:
+      - PRODUCT_SERVICE_HOST=product-service
+      - PRICING_SERVICE_HOST=pricing-service
+      - SCRAPER_SERVICE_HOST=scraper-service
+      - COMPETITOR_SERVICE_HOST=competitor-service
+      - LLM_ASSISTANT_SERVICE_HOST=llm-assistant-service
+      - AUTH_SERVICE_HOST=auth-service
+
+  product-service:
+    build: ./services/product-service
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB=omnipricex
+
+  pricing-service:
+    build: ./services/pricing-service
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB=omnipricex
+
+  scraper-service:
+    build: ./services/scraper-service
+    depends_on:
+      - mongodb
+      - rabbitmq
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB=omnipricex
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+
+  competitor-service:
+    build: ./services/competitor-service
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB=omnipricex
+
+  llm-assistant-service:
+    build: ./services/llm-assistant-service
+    environment:
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+
+  auth-service:
+    build: ./services/auth-service
+    depends_on:
+      - mongodb
+    environment:
+      - MONGO_URI=mongodb://mongodb:27017
+      - MONGO_DB=omnipricex
+      - JWT_SECRET=${JWT_SECRET}
+
+volumes:
+  mongodb_data:

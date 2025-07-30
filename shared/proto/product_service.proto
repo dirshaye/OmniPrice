@@ -1,0 +1,139 @@
+syntax = "proto3";
+
+package omnipricex.product;
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/empty.proto";
+
+// Product Service Definition
+service ProductService {
+    // CRUD operations
+    rpc CreateProduct(CreateProductRequest) returns (ProductResponse);
+    rpc GetProduct(GetProductRequest) returns (ProductResponse);
+    rpc UpdateProduct(UpdateProductRequest) returns (ProductResponse);
+    rpc DeleteProduct(DeleteProductRequest) returns (google.protobuf.Empty);
+    rpc ListProducts(ListProductsRequest) returns (ListProductsResponse);
+    
+    // Business operations
+    rpc GetProductsByCategory(GetProductsByCategoryRequest) returns (ListProductsResponse);
+    rpc GetLowStockProducts(google.protobuf.Empty) returns (ListProductsResponse);
+    rpc UpdateProductPrice(UpdateProductPriceRequest) returns (ProductResponse);
+    rpc BulkUpdateProducts(BulkUpdateProductsRequest) returns (BulkUpdateProductsResponse);
+}
+
+// Messages
+message Product {
+    string id = 1;
+    string name = 2;
+    string sku = 3;
+    string description = 4;
+    string category = 5;
+    string brand = 6;
+    double base_price = 7;
+    double current_price = 8;
+    double min_price = 9;
+    double max_price = 10;
+    double cost_price = 11;
+    int32 stock_quantity = 12;
+    int32 low_stock_threshold = 13;
+    string status = 14;
+    bool is_active = 15;
+    map<string, string> competitor_urls = 16;
+    repeated string tags = 17;
+    google.protobuf.Timestamp created_at = 18;
+    google.protobuf.Timestamp updated_at = 19;
+    string created_by = 20;
+}
+
+message CreateProductRequest {
+    string name = 1;
+    string sku = 2;
+    string description = 3;
+    string category = 4;
+    string brand = 5;
+    double base_price = 6;
+    double current_price = 7;
+    double min_price = 8;
+    double max_price = 9;
+    double cost_price = 10;
+    int32 stock_quantity = 11;
+    int32 low_stock_threshold = 12;
+    map<string, string> competitor_urls = 13;
+    repeated string tags = 14;
+    string created_by = 15;
+}
+
+message GetProductRequest {
+    string id = 1;
+}
+
+message UpdateProductRequest {
+    string id = 1;
+    optional string name = 2;
+    optional string description = 3;
+    optional string category = 4;
+    optional string brand = 5;
+    optional double base_price = 6;
+    optional double current_price = 7;
+    optional double min_price = 8;
+    optional double max_price = 9;
+    optional double cost_price = 10;
+    optional int32 stock_quantity = 11;
+    optional int32 low_stock_threshold = 12;
+    optional string status = 13;
+    optional bool is_active = 14;
+    map<string, string> competitor_urls = 15;
+    repeated string tags = 16;
+}
+
+message DeleteProductRequest {
+    string id = 1;
+}
+
+message ListProductsRequest {
+    int32 page = 1;
+    int32 limit = 2;
+    optional string category = 3;
+    optional string brand = 4;
+    optional bool is_active = 5;
+    optional string search = 6;
+}
+
+message ListProductsResponse {
+    repeated Product products = 1;
+    int32 total = 2;
+    int32 page = 3;
+    int32 limit = 4;
+    bool has_next = 5;
+}
+
+message GetProductsByCategoryRequest {
+    string category = 1;
+    int32 page = 2;
+    int32 limit = 3;
+}
+
+message UpdateProductPriceRequest {
+    string product_id = 1;
+    double new_price = 2;
+    string reason = 3;
+    string updated_by = 4;
+}
+
+message BulkUpdateProductsRequest {
+    repeated UpdateProductRequest updates = 1;
+    string updated_by = 2;
+}
+
+message BulkUpdateProductsResponse {
+    int32 total_updated = 1;
+    int32 total_failed = 2;
+    repeated string failed_ids = 3;
+    repeated string error_messages = 4;
+}
+
+message ProductResponse {
+    bool success = 1;
+    string message = 2;
+    Product product = 3;
+}
