@@ -21,3 +21,7 @@ app.include_router(product_router.router, prefix="/products", tags=["products"])
 @app.get("/")
 async def root():
     return {"message": "Welcome to the OmniPriceX API Gateway"}
+
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "service": "api-gateway"}

@@ -15,7 +15,9 @@ services:
       - "15672:15672"
 
   api-gateway:
-    build: ./services/api-gateway
+    build:
+      context: .
+      dockerfile: ./services/api-gateway/Dockerfile
     ports:
       - "8000:8000"
     depends_on:
@@ -32,54 +34,72 @@ services:
       - COMPETITOR_SERVICE_HOST=competitor-service
       - LLM_ASSISTANT_SERVICE_HOST=llm-assistant-service
       - AUTH_SERVICE_HOST=auth-service
+    env_file:
+      - ./.env
 
   product-service:
-    build: ./services/product-service
+    build:
+      context: .
+      dockerfile: ./services/product-service/Dockerfile
     depends_on:
       - mongodb
-    environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB=omnipricex
+    env_file:
+      - ./.env
 
   pricing-service:
-    build: ./services/pricing-service
+    build:
+      context: .
+      dockerfile: ./services/pricing-service/Dockerfile
     depends_on:
       - mongodb
-    environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB=omnipricex
+    env_file:
+      - ./.env
 
   scraper-service:
-    build: ./services/scraper-service
+    build:
+      context: .
+      dockerfile: ./services/scraper-service/Dockerfile
     depends_on:
       - mongodb
       - rabbitmq
-    environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB=omnipricex
-      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    env_file:
+      - ./.env
 
   competitor-service:
-    build: ./services/competitor-service
+    build:
+      context: .
+      dockerfile: ./services/competitor-service/Dockerfile
     depends_on:
       - mongodb
-    environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB=omnipricex
+    env_file:
+      - ./.env
 
   llm-assistant-service:
-    build: ./services/llm-assistant-service
-    environment:
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    build:
+      context: .
+      dockerfile: ./services/llm-assistant-service/Dockerfile
+    env_file:
+      - ./.env
 
   auth-service:
-    build: ./services/auth-service
+    build:
+      context: .
+      dockerfile: ./services/auth-service/Dockerfile
     depends_on:
       - mongodb
+    env_file:
+      - ./.env
+
+  frontend:
+    build:
+      context: .
+      dockerfile: ./frontend/Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - api-gateway
     environment:
-      - MONGO_URI=mongodb://mongodb:27017
-      - MONGO_DB=omnipricex
-      - JWT_SECRET=${JWT_SECRET}
+      - REACT_APP_API_URL=http://localhost:8000
 
 volumes:
   mongodb_data:
