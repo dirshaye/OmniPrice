@@ -1,0 +1,10 @@
+fastapi
+uvicorn
+beanie
+motor
+pydantic
+grpcio
+grpcio-tools
+protobuf
+passlib[bcrypt]
+python-jose[cryptography]
