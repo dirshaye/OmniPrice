@@ -6,3 +6,4 @@ pydantic
 grpcio
 grpcio-tools
 protobuf
+pydantic-settings
