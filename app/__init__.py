@@ -1,1 +1,0 @@
-# OmniPriceX FastAPI Application

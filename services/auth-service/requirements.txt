@@ -1,12 +1,38 @@
-fastapi
-uvicorn
-beanie
-motor
-pydantic
-grpcio
-grpcio-tools
-protobuf
-passlib[bcrypt]
-python-jose[cryptography]
-pydantic-settings
-pydantic[email]
+# FastAPI and Web Framework
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+
+# Database - MongoDB
+motor==3.3.2
+beanie==1.23.6
+
+# Authentication & Security
+passlib[bcrypt]==1.7.4
+python-jose[cryptography]==3.3.0
+bcrypt==4.1.2
+
+# Environment & Configuration
+pydantic==2.5.0
+pydantic-settings==2.1.0
+pydantic[email]==2.5.0
+python-dotenv==1.0.0
+
+# HTTP Client (for inter-service communication)
+httpx==0.25.2
+
+# Validation & Utilities
+email-validator==2.1.0.post1
+python-multipart==0.0.6
+
+# gRPC (for inter-service communication)
+grpcio==1.59.3
+grpcio-tools==1.59.3
+protobuf==4.25.1
+
+# Development & Testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+pytest-mock==3.12.0
+
+# Monitoring & Logging
+structlog==23.2.0

@@ -1,6 +1,6 @@
 # OmniPriceX Makefile
 
-.PHONY: help build up down logs clean test deploy-local deploy-aws grpc
+.PHONY: help install test lint format build deploy generate-proto clean
 
 help: ## Show this help message
 	@echo 'Usage: make [target]'
@@ -9,43 +9,65 @@ help: ## Show this help message
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
 # Development commands
+install: ## Install all dependencies
+	@echo "Installing Python dependencies..."
+	@for service in services/*/; do \
+		if [ -f "$$service/requirements.txt" ]; then \
+			echo "Installing dependencies for $$service"; \
+			pip install -r "$$service/requirements.txt"; \
+		fi; \
+	done
+	@echo "Installing frontend dependencies..."
+	cd frontend && npm install
+
+test: ## Run all tests
+	@echo "Running Python tests..."
+	@for service in services/*/; do \
+		if [ -d "$$service/tests" ]; then \
+			echo "Testing $$service"; \
+			pytest "$$service/tests/" -v; \
+		fi; \
+	done
+	@echo "Running integration tests..."
+	pytest tests/integration/ -v
+	@echo "Running frontend tests..."
+	cd frontend && npm test -- --coverage --watchAll=false
+
+lint: ## Run linting on all code
+	@echo "Linting Python code..."
+	flake8 services/ shared/
+	mypy services/ shared/
+	@echo "Linting frontend code..."
+	cd frontend && npm run lint
+
+format: ## Format all code
+	@echo "Formatting Python code..."
+	black services/ shared/
+	isort services/ shared/
+	@echo "Formatting frontend code..."
+	cd frontend && npm run format
+
 build: ## Build all Docker images
 	docker-compose build
 
-up: ## Start all services
-	docker-compose up -d
+deploy: ## Deploy to production
+	./scripts/deploy.sh
 
-down: ## Stop all services
-	docker-compose down
-
-logs: ## Show logs from all services
-	docker-compose logs -f
+generate-proto: ## Generate gRPC code from proto files
+	chmod +x scripts/generate_grpc.sh
+	./scripts/generate_grpc.sh
 
 clean: ## Clean up containers, networks, and volumes
 	docker-compose down -v --remove-orphans
 	docker system prune -f
 
-grpc: ## Generate gRPC code from proto files
-	chmod +x scripts/generate_grpc.sh
-	./scripts/generate_grpc.sh
-
-# Testing
-test: ## Run tests
-	@echo "Running tests..."
-	# Add your test commands here
-	# pytest tests/ -v
-
-# Deployment commands
-deploy-local: grpc build up ## Full local deployment
-	@echo "Local deployment complete!"
-
-deploy-aws: ## Deploy to AWS using the deployment script
-	chmod +x scripts/deploy.sh
-	./scripts/deploy.sh
+# Development workflow
+dev: generate-proto build ## Setup development environment
+	docker-compose up -d
 
 # Infrastructure commands
 terraform-init: ## Initialize Terraform
-	cd terraform && terraform init
+	cd infrastructure/terraform && terraform init
 
 terraform-plan: ## Plan Terraform changes
 	cd terraform && terraform plan

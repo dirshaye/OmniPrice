@@ -1,5 +1,12 @@
-fastapi
-uvicorn
-grpcio
-grpcio-tools
-protobuf
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+grpcio==1.60.0
+grpcio-tools==1.60.0
+protobuf==4.25.8
+pydantic==2.5.0
+pydantic-settings==2.1.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.6
+httpx==0.28.1
+python-dotenv==1.0.0

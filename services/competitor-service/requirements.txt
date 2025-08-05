@@ -1,9 +1,0 @@
-fastapi
-uvicorn
-beanie
-motor
-pydantic
-grpcio
-grpcio-tools
-protobuf
-pydantic-settings

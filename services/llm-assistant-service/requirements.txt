@@ -1,8 +1,0 @@
-fastapi
-uvicorn
-pydantic
-grpcio
-grpcio-tools
-protobuf
-google-generativeai
-pydantic-settings

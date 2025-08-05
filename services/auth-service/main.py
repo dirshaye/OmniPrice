@@ -1,40 +1,84 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from contextlib import asynccontextmanager
 from beanie import init_beanie
-from motor.motor_asyncio import AsyncIOMotorClient
+import motor.motor_asyncio
 
-from app.config import settings
-from app.database import User
-from app.service import AuthService
-from app.proto import auth_service_pb2_grpc
+from app.config import get_settings
+from app.models import User, RefreshToken
+from app.routers import auth
 
-import grpc
-from concurrent import futures
+# Get settings
+settings = get_settings()
 
-def create_app():
-    app = FastAPI(
-        title="Auth Service",
-        description="Manages user authentication and authorization.",
-        version="0.1.0",
-    )
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """
+    Application lifespan manager
+    Initialize database connections and cleanup on shutdown
+    """
+    # Initialize MongoDB connection
+    client = motor.motor_asyncio.AsyncIOMotorClient(settings.MONGODB_URL)
+    database = client[settings.DATABASE_NAME]
+    
+    # Initialize Beanie with document models
+    await init_beanie(database=database, document_models=[User, RefreshToken])
+    
+    print(f"🚀 {settings.PROJECT_NAME} started successfully!")
+    print(f"📊 Database: {settings.DATABASE_NAME}")
+    print(f"🌍 Environment: {settings.ENVIRONMENT}")
+    
+    yield
+    
+    # Cleanup on shutdown
+    client.close()
+    print("📴 Auth service shutdown complete")
 
-    @app.on_event("startup")
-    async def startup_event():
-        client = AsyncIOMotorClient(settings.MONGO_URI)
-        await init_beanie(
-            database=client[settings.MONGO_DB],
-            document_models=[User],
-        )
+# Create FastAPI application
+app = FastAPI(
+    title=settings.PROJECT_NAME,
+    version=settings.VERSION,
+    description=settings.DESCRIPTION,
+    openapi_url=f"{settings.API_V1_STR}/openapi.json",
+    docs_url=f"{settings.API_V1_STR}/docs",
+    redoc_url=f"{settings.API_V1_STR}/redoc",
+    lifespan=lifespan
+)
 
-    return app
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app = create_app()
+# Include routers
+app.include_router(auth.router, prefix=settings.API_V1_STR)
 
-def serve():
-    server = grpc.server(futures.ThreadPoolExecutor(max_workers=10))
-    auth_service_pb2_grpc.add_AuthServiceServicer_to_server(AuthService(), server)
-    server.add_insecure_port("[::]:50056")
-    server.start()
-    server.wait_for_termination()
+# Root endpoint
+@app.get("/")
+async def root():
+    """
+    Root endpoint - Service information
+    """
+    return {
+        "service": settings.PROJECT_NAME,
+        "version": settings.VERSION,
+        "status": "running",
+        "docs": f"{settings.API_V1_STR}/docs"
+    }
 
-if __name__ == "__main__":
-    serve()
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    """
+    Health check endpoint for load balancers and monitoring
+    """
+    return {
+        "status": "healthy",
+        "service": "auth-service",
+        "version": settings.VERSION,
+        "environment": settings.ENVIRONMENT
+    }

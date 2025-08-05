@@ -1,18 +1,24 @@
 version: '3.8'
 
 services:
-  mongodb:
-    image: mongo:latest
-    ports:
-      - "27017:27017"
-    volumes:
-      - mongodb_data:/data/db
-
   rabbitmq:
     image: rabbitmq:3-management
     ports:
       - "5672:5672"
       - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: guest
+      RABBITMQ_DEFAULT_PASS: guest
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
 
   api-gateway:
     build:
@@ -41,8 +47,6 @@ services:
     build:
       context: .
       dockerfile: ./services/product-service/Dockerfile
-    depends_on:
-      - mongodb
     env_file:
       - ./.env
 
@@ -50,8 +54,6 @@ services:
     build:
       context: .
       dockerfile: ./services/pricing-service/Dockerfile
-    depends_on:
-      - mongodb
     env_file:
       - ./.env
 
@@ -60,7 +62,6 @@ services:
       context: .
       dockerfile: ./services/scraper-service/Dockerfile
     depends_on:
-      - mongodb
       - rabbitmq
     env_file:
       - ./.env
@@ -69,8 +70,6 @@ services:
     build:
       context: .
       dockerfile: ./services/competitor-service/Dockerfile
-    depends_on:
-      - mongodb
     env_file:
       - ./.env
 
@@ -85,8 +84,72 @@ services:
     build:
       context: .
       dockerfile: ./services/auth-service/Dockerfile
+    env_file:
+      - ./.env
+
+  scheduler-service:
+    build:
+      context: .
+      dockerfile: ./services/scheduler/Dockerfile
+    ports:
+      - "50054:50054"
     depends_on:
-      - mongodb
+      - rabbitmq
+      - redis
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - GRPC_PORT=50054
+    env_file:
+      - ./.env
+    command: python services/scheduler/main.py
+
+  celery-worker:
+    build:
+      context: .
+      dockerfile: ./services/scheduler/Dockerfile
+    command: python services/scheduler/worker.py
+    depends_on:
+      - rabbitmq
+      - redis
+      - scheduler-service
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - ./.env
+
+  celery-beat:
+    build:
+      context: .
+      dockerfile: ./services/scheduler/Dockerfile
+    command: python services/scheduler/beat.py
+    depends_on:
+      - rabbitmq
+      - redis
+      - scheduler-service
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - ./.env
+
+  flower:
+    build:
+      context: .
+      dockerfile: ./services/scheduler/Dockerfile
+    command: celery -A services.scheduler.app.celery_app flower --port=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - rabbitmq
+      - redis
+    environment:
+      - CELERY_BROKER_URL=amqp://guest:guest@rabbitmq:5672//
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
     env_file:
       - ./.env
 
@@ -103,3 +166,10 @@ services:
 
 volumes:
   mongodb_data:
+  rabbitmq_data:
+  redis_data:
+
+networks:
+  default:
+    external: true
+    name: omnipricex-network

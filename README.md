@@ -1,29 +1,253 @@
-# OmniPriceX - Microservices Architecture
+# OmniPrice - Dynamic Pricing Platform
 
-AI-powered dynamic pricing system built with microservices architecture using FastAPI, MongoDB Atlas, and gRPC.
+AI-powered dynamic pricing system , built with enterprise-grade microservices architecture. Showcases advanced backend engineering, data workflows, and LLM integration for optimal pricing strategies.
 
-## Architecture Overview
+## 🏗️ Project Structure
+
+```
+OmniPrice/
+├── README.md                       # Project overview and setup
+├── Makefile                        # Build automation and development tasks
+├── docker-compose.yml              # Local development environment
+├── .github/workflows/              # CI/CD pipelines
+├── docs/                           # Comprehensive documentation
+│   ├── architecture.md             # System architecture details
+│   ├── api/endpoints.md             # API documentation
+│   └── deployment/guide.md          # Deployment instructions
+├── services/                       # Microservices
+│   ├── api-gateway/                # Frontend interface & routing (Port 8000)
+│   ├── scraper-service/            # Playwright-based web scraping (Port 8003)
+│   ├── external-api-adapter/       # Shopify/Amazon/Google APIs (Port 8005)
+│   ├── pricing-service/            # Pricing rules engine (Port 8002)
+│   ├── llm-assistant/              # Gemini/GPT-4 pricing AI (Port 8006)
+│   ├── scheduler/                  # Prefect 2.x workflows (Port 8007)
+│   ├── data-pipeline/              # Pandas/PySpark ETL (Port 8008)
+│   ├── product-service/            # Product management (Port 8001)
+│   └── auth-service/               # Auth0 integration (Port 8004)
+├── frontend/                       # React + Material UI
+├── shared/                         # Common libraries & utilities
+│   ├── proto/                      # gRPC protocol definitions
+│   ├── models/                     # Shared data models
+│   ├── config/                     # Common configurations
+│   └── utils/                      # Helper utilities
+├── infrastructure/                 # Infrastructure as Code
+│   └── terraform/                  # AWS resource definitions
+├── tests/                          # Test suites
+│   ├── integration/                # Service integration tests
+│   └── e2e/                        # End-to-end user workflows
+├── monitoring/                     # Observability configuration
+│   ├── prometheus/                 # Metrics collection
+│   └── grafana/                    # Monitoring dashboards
+└── scripts/                        # Build and deployment scripts
+```
+
+## 🏛️ Architecture Overview
 
 ```
 ┌─────────────────┐    REST API    ┌─────────────────┐
 │   React Frontend│◄──────────────►│   API Gateway   │
-└─────────────────┘                │  (FastAPI)      │
-                                   └─────────┬───────┘
+│   (Port 3000)   │                │  (Port 8000)    │
+└─────────────────┘                └─────────┬───────┘
                                             │ gRPC
-                    ┌───────────────────────┼───────────────────────┐
-                    │                       │                       │
-           ┌────────▼────────┐    ┌────────▼────────┐    ┌────────▼────────┐
-           │  Product Service│    │ Pricing Service │    │ Scraper Service │
-           │   (FastAPI)     │    │   (FastAPI)     │    │   (FastAPI)     │
-           └─────────────────┘    └─────────────────┘    └─────────────────┘
-                    │                       │                       │
-           ┌────────▼────────┐    ┌────────▼────────┐    ┌────────▼────────┐
-           │ Competitor Svc  │    │ Analytics Svc   │    │ LLM Assistant   │
-           │   (FastAPI)     │    │   (FastAPI)     │    │   (FastAPI)     │
-           └─────────────────┘    └─────────────────┘    └─────────────────┘
+    ┌──────────────────────────────────────┼──────────────────────────────────────┐
+    │                                      │                                      │
+┌───▼────┐  ┌──────────┐  ┌──────────┐  ┌─▼────┐  ┌──────────┐  ┌─────────────┐  │
+│Products│  │ Pricing  │  │ Scraper  │  │ LLM  │  │Scheduler │  │Data Pipeline│  │
+│(8001)  │  │ (8002)   │  │ (8003)   │  │(8006)│  │ (8007)   │  │   (8008)    │  │
+└────────┘  └──────────┘  └──────────┘  └──────┘  └──────────┘  └─────────────┘  │
+    │                                      │                                      │
+    └──────────────────────────────────────┼──────────────────────────────────────┘
+                                          │
+                ┌─────────────────────────▼─────────────────────────┐
+                │              External APIs                        │
+                │  ┌──────────┐  ┌──────────┐  ┌──────────┐        │
+                │  │ Shopify  │  │ Amazon   │  │ Google   │        │
+                │  │   API    │  │   API    │  │   API    │        │
+                │  └──────────┘  └──────────┘  └──────────┘        │
+                └───────────────────────────────────────────────────┘
 ```
 
-## Services
+## ⚡ Quick Start
+
+### Prerequisites
+- Docker & Docker Compose
+- Node.js 18+
+- Python 3.11+
+- Make
+
+### Development Setup
+```bash
+# Clone and setup
+git clone https://github.com/dirshaye/OmniPrice.git
+cd OmniPrice
+
+# Install dependencies
+make install
+
+# Generate gRPC code
+make generate-proto
+
+# Start development environment
+make dev
+```
+
+### Access Points
+- **Frontend**: http://localhost:3000
+- **API Gateway**: http://localhost:8000
+- **API Documentation**: http://localhost:8000/docs
+- **Prefect UI**: http://localhost:4200
+
+## 🔧 Development Commands
+
+```bash
+make install        # Install all dependencies
+make test          # Run all tests (Python + Frontend)
+make lint          # Run code linting
+make format        # Format all code
+make build         # Build Docker images
+make dev           # Start development environment
+make clean         # Clean up containers and images
+```
+
+## 🌟 Core Technologies & Stack
+
+| Component | Technology |
+|-----------|------------|
+| **Frontend** | React + Material UI |
+| **API Gateway** | FastAPI (Port 8000) |
+| **Scraper Service** | FastAPI + Playwright |
+| **External API Adapter** | FastAPI + Shopify/Amazon/Google APIs |
+| **Pricing Service** | FastAPI + pricing rules engine |
+| **LLM Assistant** | Gemini/GPT-4 via API |
+| **Scheduler** | Prefect 2.x |
+| **Data Pipeline** | FastAPI + Pandas/PySpark |
+| **Database** | MongoDB Atlas |
+| **Auth** | Auth0 integration |
+| **Message Queue** | Celery + RabbitMQ |
+| **Caching** | Redis |
+| **Monitoring** | Prometheus + Grafana |
+
+## 🚀 Key Backend Features
+
+### Microservices Architecture
+- **FastAPI-based services** communicating via gRPC
+- **Independent deployment** with Docker containers
+- **Service discovery** and load balancing
+- **Circuit breakers** and retry mechanisms
+
+### Async Task Queue
+- **Celery + RabbitMQ** for background jobs:
+  - Scraping competitor product pages (async scrape jobs)
+  - Applying pricing rules immediately after user input
+  - Logging results into MongoDB
+  - Data cleaning and validation
+
+### Scheduled Workflows (Prefect 2.x)
+- **Orchestrated pipelines**:
+  - `scrape → clean → analyze → recommend`
+  - Monitor competitor prices every X hours
+  - Push updates to pricing dashboard and LLM assistant
+- **Visual workflow management** with Prefect UI
+- **Error handling** and automatic retries
+
+### LLM-Powered Price Assistant
+- **Gemini/GPT-4 integration** for:
+  - Optimal price recommendations
+  - Reasoning explanations using context (inventory, competitors, margin goals, seasonality)
+  - Prompt template design with reasoning chains
+- **Context-aware recommendations** based on market conditions
+
+### Data Engineering Pipeline
+- **Pandas/PySpark** for:
+  - Cleaning scraped competitor data
+  - Joining historical price trends from MongoDB
+  - Analyzing stock levels, competitor patterns, seasonality
+- **Real-time and batch processing** capabilities
+- **Data quality monitoring** and validation
+
+### Data-as-a-Service API Layer
+- **RESTful endpoints** for internal tools:
+  - Fetch historical pricing data
+  - View current vs recommended prices
+  - Manage pricing rules per product/category
+- **GraphQL support** for flexible data queries
+- **API versioning** and documentation
+
+### Authentication & Authorization
+- **Auth0 integration** for secure multi-tenant access
+- **JWT-based authentication** with refresh tokens
+- **Role-based access control** (RBAC)
+- **API key management** for service-to-service communication
+
+## 📊 Advanced Features
+
+### Web Scraping Engine
+- **Playwright-based scraping** for JavaScript-heavy sites
+- **Anti-detection mechanisms** (rotating proxies, user agents)
+- **Concurrent scraping** with rate limiting
+- **Error handling** and retry strategies
+
+### External API Integration
+- **Shopify API** for e-commerce data
+- **Amazon Product Advertising API** for competitor pricing
+- **Google Shopping API** for market research
+- **Unified adapter pattern** for easy API additions
+
+### Pricing Rules Engine
+- **Dynamic rule evaluation** based on:
+  - Competitor prices
+  - Inventory levels
+  - Profit margins
+  - Seasonal trends
+  - Customer segments
+- **A/B testing** for pricing strategies
+- **Real-time price updates** via WebSocket
+
+### Monitoring & Observability
+- **Prometheus metrics** collection
+- **Grafana dashboards** for visualization
+- **Distributed tracing** with OpenTelemetry
+- **Structured logging** with correlation IDs
+- **Health checks** and alerting
+
+## 🔄 Data Flow Architecture
+
+### Real-time Pricing Workflow
+1. **User configures pricing rules** → API Gateway
+2. **Rules applied immediately** → Pricing Service
+3. **Background validation** → LLM Assistant
+4. **Price updates pushed** → Frontend via WebSocket
+
+### Competitor Monitoring Workflow
+1. **Scheduled scraping** → Prefect triggers Scraper Service
+2. **Data cleaning** → Data Pipeline processes raw data
+3. **Trend analysis** → Historical comparison and insights
+4. **LLM recommendations** → AI-powered pricing suggestions
+5. **Dashboard updates** → Real-time notifications to users
+
+### External API Workflow
+1. **API calls** → External API Adapter
+2. **Data normalization** → Standardized format
+3. **Rate limiting** → Respect API quotas
+4. **Caching** → Redis for performance
+5. **Error handling** → Graceful degradation
+
+## 📈 Showcase Value
+
+This architecture demonstrates:
+
+- **Clean microservices design** with proper separation of concerns
+- **Smart backend workflows** with orchestration and automation
+- **Real-time pricing automation** with immediate rule application
+- **Advanced data engineering** with cleaning, analysis, and ML
+- **LLM integration** for intelligent pricing recommendations
+- **Enterprise-grade patterns** (auth, monitoring, testing, documentation)
+
+Perfect for showcasing: **scraping, ETL, rule engines, scheduling, LLM integration, MongoDB operations, API contracts, and authentication** in a production-ready system.
+
+## 🚀 Getting Started
+
+See our [deployment guide](docs/deployment/guide.md) for detailed setup instructions and [API documentation](docs/api/endpoints.md) for integration details.
 
 ### Frontend (React 18 + Material-UI)
 - **Modern UI**: Clean, responsive design with Material-UI components
