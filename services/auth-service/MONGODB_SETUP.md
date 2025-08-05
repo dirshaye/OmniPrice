@@ -66,7 +66,7 @@ python setup_mongodb.py
 
 Your `.env` file should look like:
 ```env
-MONGODB_URL=mongodb+srv://omnipricex_user:YourSecurePassword123@omnipricex-cluster.ab1cd.mongodb.net/omnipricex_auth?retryWrites=true&w=majority
+MONGODB_URL=mongodb+srv://your-username:your-password@your-cluster.xxxxx.mongodb.net/omnipricex_auth?retryWrites=true&w=majority
 DATABASE_NAME=omnipricex_auth
 SECRET_KEY=a1b2c3d4e5f6789012345678901234567890abcdef1234567890abcdef123456
 ```

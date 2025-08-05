@@ -1,13 +1,14 @@
 from functools import lru_cache
 from pydantic_settings import BaseSettings
 from typing import Optional, List
+import os
 
 class Settings(BaseSettings):
     """
     LLM Assistant Service Configuration
     """
     # Database
-    MONGODB_URL: str = "mongodb+srv://dirshaye:dre%40mongodb@cluster0.jgxe61g.mongodb.net/omnipricex_llm?retryWrites=true&w=majority&appName=Cluster0"
+    MONGODB_URL: str = os.getenv("MONGODB_URL", "mongodb://localhost:27017/omnipricex_llm")
     DATABASE_NAME: str = "omnipricex_llm"
     
     # API Settings

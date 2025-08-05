@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     GRPC_PORT: int = 50053
     
     # Database configuration
-    MONGO_URI: str = "mongodb+srv://omnipricexuser:U3Lj8vKfGmHnQz9R@cluster0.jgxe61g.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0"
+    MONGO_URI: str = os.getenv("MONGO_URI", "mongodb://localhost:27017/omnipricex")
     MONGO_DB: str = "omnipricex"
     
     # Redis configuration (for caching)
