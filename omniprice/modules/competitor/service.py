@@ -1,0 +1,1 @@
+# Competitor Module Service

@@ -2,6 +2,8 @@
 
 AI-powered dynamic pricing system , built with enterprise-grade microservices architecture. Showcases advanced backend engineering, data workflows, and LLM integration for optimal pricing strategies.
 
+> MVP Mode Available: Run as a single FastAPI monolith + React frontend for learning and rapid iteration. See "MVP Monolith Mode" section below.
+
 ## 🏗️ Project Structure
 
 ```
@@ -66,6 +68,43 @@ OmniPrice/
                 │  └──────────┘  └──────────┘  └──────────┘        │
                 └───────────────────────────────────────────────────┘
 ```
+
+## 🧩 MVP Monolith Mode
+
+This repository now supports a simplified development path: start with a single backend (monolith) before re‑introducing individual microservices, queues, and gRPC. This helps you learn incrementally.
+
+### What's Included in MVP
+- FastAPI backend (single process) at http://localhost:8000
+- In-memory Products CRUD
+- In-memory Pricing Rules + mock recommendation endpoint
+- Mock endpoints for competitors, analytics, scraper so the frontend UI doesn’t break
+- React frontend at http://localhost:3000
+
+### What's Excluded (for now)
+- MongoDB / Redis / RabbitMQ
+- Celery tasks & scheduler
+- gRPC services
+- LLM assistant integration
+
+### Run the MVP
+```bash
+make mvp-up       # build + start backend + frontend
+make mvp-logs     # follow backend logs
+make mvp-down     # stop containers
+make mvp-reset    # full clean
+```
+
+Backend docs: http://localhost:8000/docs
+
+### Migration Roadmap
+1. Persist Products to MongoDB
+2. Extract Pricing into its own REST service
+3. Add Redis + RabbitMQ + Celery for background tasks
+4. Split services further (scraper, competitors, analytics)
+5. Introduce gRPC between services
+6. Add LLM assistant & advanced analytics
+
+Each step can be layered on without rewriting earlier code.
 
 ## ⚡ Quick Start
 

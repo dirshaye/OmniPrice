@@ -11,12 +11,9 @@ help: ## Show this help message
 # Development commands
 install: ## Install all dependencies
 	@echo "Installing Python dependencies..."
-	@for service in services/*/; do \
-		if [ -f "$$service/requirements.txt" ]; then \
-			echo "Installing dependencies for $$service"; \
-			pip install -r "$$service/requirements.txt"; \
-		fi; \
-	done
+	pip install -r requirements.txt
+	@echo "Installing development dependencies..."
+	pip install -r requirements-dev.txt
 	@echo "Installing frontend dependencies..."
 	cd frontend && npm install
 
@@ -49,6 +46,19 @@ format: ## Format all code
 
 build: ## Build all Docker images
 	docker-compose build
+
+# --- MVP MONOLITH WORKFLOW ---
+mvp-up: ## Run minimal monolith backend + frontend
+	docker compose up -d --build backend frontend
+
+mvp-down: ## Stop MVP containers
+	docker compose down
+
+mvp-logs: ## Tail logs for backend
+	docker compose logs -f backend
+
+mvp-reset: ## Full reset of MVP (containers + dangling images)
+	docker compose down -v --remove-orphans && docker system prune -f
 
 deploy: ## Deploy to production
 	./scripts/deploy.sh

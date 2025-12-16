@@ -11,5 +11,4 @@ pytest tests/integration/ -v
 ## Test Structure
 
 - `test_api_gateway.py` - Tests API Gateway integration with services
-- `test_service_communication.py` - Tests gRPC communication between services
 - `test_database_operations.py` - Tests database operations across services

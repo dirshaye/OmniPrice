@@ -1,1 +1,0 @@
-../../../../shared/proto/scraper_service_pb2_grpc.py

@@ -1,4 +1,54 @@
-# Deployment Guide
+# OmniPrice Deployment Strategy (AWS)
+
+## Target Architecture
+To showcase DevOps skills while maximizing the AWS Free Tier and $100 credits, we will use a **Hybrid Architecture**:
+
+### 1. Frontend: AWS Amplify
+*   **Service**: AWS Amplify Hosting.
+*   **Why**:
+    *   Fully managed CI/CD (connects to GitHub).
+    *   Free tier is generous.
+    *   Automatic HTTPS/SSL.
+    *   Showcases "Modern Frontend Ops".
+
+### 2. Backend & Workers: Amazon EC2
+*   **Service**: Amazon EC2 (`t2.micro` or `t3.micro`).
+*   **Why**:
+    *   **Free Tier**: 750 hours/month free for 12 months.
+    *   **Credits**: Completes the "Launch an EC2 instance" task ($20 credit).
+    *   **Skills**: Demonstrates Linux administration, Docker, and Docker Compose management.
+    *   **Flexibility**: We can run FastAPI, Celery, and Redis all in one containerized environment using `docker-compose`.
+
+### 3. Database: MongoDB Atlas
+*   **Service**: MongoDB Atlas (M0 Sandbox).
+*   **Why**:
+    *   Industry standard for MongoDB hosting.
+    *   **Free forever** (shared tier).
+    *   Better reliability than hosting Mongo on a tiny EC2 instance.
+    *   Easy to connect via connection string.
+
+### 4. Optional: Serverless Functions (AWS Lambda)
+*   **Service**: AWS Lambda.
+*   **Why**:
+    *   **Credits**: Completes the "Create a web app using AWS Lambda" task ($20 credit).
+    *   **Use Case**: We can offload a specific scheduled scraper task or the LLM trigger to a Lambda function later to demonstrate "Serverless" skills.
+
+## Deployment Roadmap
+
+### Step 1: Local Development (Current Phase)
+*   Use `docker-compose.dev.yml` to run everything locally.
+*   Focus on coding the features (Auth, Products, Scraper).
+
+### Step 2: Infrastructure Setup (Terraform)
+*   Use Terraform to provision the EC2 instance and Security Groups (Firewall).
+*   Set up the MongoDB Atlas cluster manually (or via Terraform provider).
+
+### Step 3: CI/CD Pipeline (GitHub Actions)
+*   **Frontend**: Push to `main` branch -> Triggers AWS Amplify build.
+*   **Backend**: Push to `main` branch -> GitHub Action builds Docker image -> Pushes to AWS ECR (Elastic Container Registry) -> SSH into EC2 and pulls new image.
+
+---
+*Reference for Implementation Plan: See `docs/implementation_plan.md`*
 
 ## Prerequisites
 

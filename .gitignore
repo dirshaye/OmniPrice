@@ -18,3 +18,9 @@ dist/
 __pycache__/
 db.sqlite3
 media/
+
+#copilot-instruction
+.github/copilot-instructions.md
+
+#my_personal_text
+googpromt.txt
