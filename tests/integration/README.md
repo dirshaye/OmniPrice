@@ -1,14 +1,23 @@
 # Integration Tests
 
-This directory contains integration tests that test the interaction between multiple services.
+Integration tests validate API behavior across service boundaries.
 
-## Running Tests
+## Run
 
 ```bash
-pytest tests/integration/ -v
+pytest tests/integration -v
 ```
 
-## Test Structure
+## Current Suites
 
-- `test_api_gateway.py` - Tests API Gateway integration with services
-- `test_database_operations.py` - Tests database operations across services
+- `test_vertical_slice.py`
+  product -> competitor -> scraper -> price history flow
+- `test_pricing_llm_slice.py`
+  pricing recommendation + llm ask endpoints
+- `test_error_paths.py`
+  scraper/llm failure contracts
+
+## Notes
+
+- Tests use `httpx` with FastAPI ASGI transport.
+- External providers are monkeypatched for deterministic behavior.

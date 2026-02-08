@@ -1,15 +1,38 @@
-# End-to-End Tests
+# E2E Tests (Playwright)
 
-This directory contains end-to-end tests that test the complete user workflows.
+This directory contains browser-level smoke tests using Playwright.
 
-## Running Tests
+## Why Playwright
+
+For this project, Playwright is preferred over Selenium because:
+
+- modern browser automation API
+- reliable waits/locators
+- faster setup for React apps
+
+## Prerequisites
+
+1. Backend and frontend must be running.
+2. Playwright Chromium browser must be installed.
 
 ```bash
-pytest tests/e2e/ -v
+python -m playwright install chromium
 ```
 
-## Test Structure
+## Run E2E
 
-- `test_user_workflows.py` - Tests complete user journeys
-- `test_pricing_workflows.py` - Tests pricing rule creation and application
-- `test_competitor_tracking.py` - Tests competitor tracking workflows
+```bash
+E2E_RUN=1 pytest -m e2e tests/e2e -v
+```
+
+Optional environment variables:
+
+- `E2E_FRONTEND_URL` (default: `http://localhost:3000`)
+
+## Coverage
+
+Current smoke scope:
+
+- Login page renders
+- Register page navigation works
+- Register form fields and submit button are visible

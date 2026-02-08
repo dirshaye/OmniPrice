@@ -1,7 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
-  Typography,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
+  MenuItem,
   Paper,
   Table,
   TableBody,
@@ -9,660 +18,235 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Button,
-  IconButton,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Card,
-  CardContent,
-  CardActions,
-  Avatar,
-  List,
-  ListItem,
-  ListItemAvatar,
-  ListItemText,
-  Divider,
-  Alert,
-  Tabs,
-  Tab,
-  LinearProgress,
-  InputAdornment,
+  Typography,
 } from '@mui/material';
-import {
-  Add,
-  Edit,
-  Delete,
-  Search,
-  Refresh,
-  TrendingUp,
-  TrendingDown,
-  Link as LinkIcon,
-  Store,
-  Timeline,
-  Warning,
-} from '@mui/icons-material';
+import { Add, Delete, Edit, Refresh } from '@mui/icons-material';
+import { competitorAPI, scraperAPI } from '../../services/api';
 
-const mockCompetitors = [
-  {
-    id: 1,
-    name: 'Amazon',
-    website: 'amazon.com',
-    status: 'active',
-    lastScrape: '2024-01-16 15:30',
-    productsTracked: 45,
-    avgPrice: 425.50,
-    priceChange: -2.1,
-    reliability: 98.5,
-    responseTime: 120,
-  },
-  {
-    id: 2,
-    name: 'Best Buy',
-    website: 'bestbuy.com',
-    status: 'active',
-    lastScrape: '2024-01-16 15:25',
-    productsTracked: 32,
-    avgPrice: 445.75,
-    priceChange: 1.8,
-    reliability: 95.2,
-    responseTime: 180,
-  },
-  {
-    id: 3,
-    name: 'Walmart',
-    website: 'walmart.com',
-    status: 'inactive',
-    lastScrape: '2024-01-15 14:20',
-    productsTracked: 28,
-    avgPrice: 398.25,
-    priceChange: -5.3,
-    reliability: 87.8,
-    responseTime: 250,
-  },
-  {
-    id: 4,
-    name: 'Target',
-    website: 'target.com',
-    status: 'active',
-    lastScrape: '2024-01-16 15:28',
-    productsTracked: 19,
-    avgPrice: 412.90,
-    priceChange: 0.5,
-    reliability: 92.1,
-    responseTime: 165,
-  },
-  {
-    id: 5,
-    name: 'Newegg',
-    website: 'newegg.com',
-    status: 'error',
-    lastScrape: '2024-01-16 12:15',
-    productsTracked: 15,
-    avgPrice: 455.30,
-    priceChange: 3.2,
-    reliability: 78.9,
-    responseTime: 320,
-  },
-];
+const emptyForm = {
+  product_id: '',
+  competitor_name: '',
+  product_url: '',
+  is_active: true,
+};
 
-const mockProductComparisons = [
-  {
-    id: 1,
-    productName: 'iPhone 15 Pro',
-    ourPrice: 999.99,
-    competitors: [
-      { name: 'Amazon', price: 979.99, inStock: true },
-      { name: 'Best Buy', price: 999.99, inStock: true },
-      { name: 'Walmart', price: 985.00, inStock: false },
-      { name: 'Target', price: 999.99, inStock: true },
-    ],
-    lowestPrice: 979.99,
-    marketPosition: 'Above Average',
-  },
-  {
-    id: 2,
-    productName: 'Samsung Galaxy S24',
-    ourPrice: 899.99,
-    competitors: [
-      { name: 'Amazon', price: 899.99, inStock: true },
-      { name: 'Best Buy', price: 929.99, inStock: true },
-      { name: 'Walmart', price: 895.00, inStock: true },
-      { name: 'Target', price: 899.99, inStock: false },
-    ],
-    lowestPrice: 895.00,
-    marketPosition: 'Competitive',
-  },
-];
+function CompetitorDialog({ open, mode, initialValue, onClose, onSubmit }) {
+  const [form, setForm] = useState(emptyForm);
 
-function CompetitorDialog({ open, onClose, competitor, onSave }) {
-  const [formData, setFormData] = useState(
-    competitor || {
-      name: '',
-      website: '',
-      status: 'active',
-      scrapeUrl: '',
-      scrapeInterval: 60,
+  useEffect(() => {
+    if (!initialValue) {
+      setForm(emptyForm);
+      return;
     }
-  );
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(formData);
-    onClose();
+    setForm({
+      product_id: initialValue.product_id || '',
+      competitor_name: initialValue.competitor_name || '',
+      product_url: initialValue.product_url || '',
+      is_active: initialValue.is_active ?? true,
+    });
+  }, [initialValue]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleChange = (field) => (event) => {
-    setFormData({ ...formData, [field]: event.target.value });
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    onSubmit({
+      product_id: form.product_id,
+      competitor_name: form.competitor_name,
+      product_url: form.product_url,
+      is_active: form.is_active === true || form.is_active === 'true',
+    });
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <form onSubmit={handleSubmit}>
-        <DialogTitle>
-          {competitor ? 'Edit Competitor' : 'Add New Competitor'}
-        </DialogTitle>
+        <DialogTitle>{mode === 'edit' ? 'Edit Competitor' : 'Add Competitor'}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Competitor Name"
-                value={formData.name}
-                onChange={handleChange('name')}
-                required
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Website"
-                value={formData.website}
-                onChange={handleChange('website')}
-                placeholder="example.com"
-                required
-              />
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12}>
+              <TextField fullWidth required label="Product ID" name="product_id" value={form.product_id} onChange={handleChange} />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Scrape URL Pattern"
-                value={formData.scrapeUrl}
-                onChange={handleChange('scrapeUrl')}
-                placeholder="https://example.com/product/{product_id}"
-                helperText="Use {product_id} as placeholder for product identifiers"
-              />
+              <TextField fullWidth required label="Competitor Name" name="competitor_name" value={form.competitor_name} onChange={handleChange} />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Scrape Interval (minutes)"
-                type="number"
-                value={formData.scrapeInterval}
-                onChange={handleChange('scrapeInterval')}
-                inputProps={{ min: 5, max: 1440 }}
-              />
+            <Grid item xs={12}>
+              <TextField fullWidth required label="Product URL" name="product_url" value={form.product_url} onChange={handleChange} />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={formData.status}
-                  onChange={handleChange('status')}
-                  label="Status"
-                >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                  <MenuItem value="error">Error</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12}>
+              <TextField select fullWidth label="Status" name="is_active" value={String(form.is_active)} onChange={handleChange}>
+                <MenuItem value="true">Active</MenuItem>
+                <MenuItem value="false">Inactive</MenuItem>
+              </TextField>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="contained">
-            {competitor ? 'Update' : 'Add'} Competitor
-          </Button>
+          <Button type="submit" variant="contained">{mode === 'edit' ? 'Update' : 'Create'}</Button>
         </DialogActions>
       </form>
     </Dialog>
   );
 }
 
-function CompetitorCard({ competitor, onEdit, onDelete, onRefresh }) {
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'active': return 'success';
-      case 'inactive': return 'warning';
-      case 'error': return 'error';
-      default: return 'default';
-    }
-  };
-
-  const getReliabilityColor = (reliability) => {
-    if (reliability >= 95) return 'success';
-    if (reliability >= 85) return 'warning';
-    return 'error';
-  };
-
-  return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-          <Avatar sx={{ mr: 2, bgcolor: 'primary.main' }}>
-            <Store />
-          </Avatar>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6">
-              {competitor.name}
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              {competitor.website}
-            </Typography>
-          </Box>
-          <Chip
-            label={competitor.status}
-            color={getStatusColor(competitor.status)}
-            size="small"
-          />
-        </Box>
-
-        <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <Typography variant="body2" color="textSecondary">
-              Products Tracked
-            </Typography>
-            <Typography variant="h6">
-              {competitor.productsTracked}
-            </Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="body2" color="textSecondary">
-              Avg Price
-            </Typography>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <Typography variant="h6">
-                ${competitor.avgPrice}
-              </Typography>
-              {competitor.priceChange !== 0 && (
-                <Box sx={{ display: 'flex', alignItems: 'center', ml: 1 }}>
-                  {competitor.priceChange > 0 ? (
-                    <TrendingUp sx={{ color: 'error.main', fontSize: 16 }} />
-                  ) : (
-                    <TrendingDown sx={{ color: 'success.main', fontSize: 16 }} />
-                  )}
-                  <Typography
-                    variant="body2"
-                    sx={{ color: competitor.priceChange > 0 ? 'error.main' : 'success.main' }}
-                  >
-                    {Math.abs(competitor.priceChange)}%
-                  </Typography>
-                </Box>
-              )}
-            </Box>
-          </Grid>
-        </Grid>
-
-        <Divider sx={{ my: 2 }} />
-
-        <Box sx={{ mb: 2 }}>
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-            <Typography variant="body2" color="textSecondary">
-              Reliability
-            </Typography>
-            <Typography variant="body2" color={getReliabilityColor(competitor.reliability)}>
-              {competitor.reliability}%
-            </Typography>
-          </Box>
-          <LinearProgress
-            variant="determinate"
-            value={competitor.reliability}
-            color={getReliabilityColor(competitor.reliability)}
-          />
-        </Box>
-
-        <Grid container spacing={1}>
-          <Grid item xs={6}>
-            <Typography variant="body2" color="textSecondary">
-              Response Time
-            </Typography>
-            <Typography variant="body2">
-              {competitor.responseTime}ms
-            </Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="body2" color="textSecondary">
-              Last Scrape
-            </Typography>
-            <Typography variant="body2">
-              {competitor.lastScrape.split(' ')[1]}
-            </Typography>
-          </Grid>
-        </Grid>
-      </CardContent>
-      <CardActions>
-        <Button size="small" onClick={() => onEdit(competitor)} startIcon={<Edit />}>
-          Edit
-        </Button>
-        <Button size="small" onClick={() => onRefresh(competitor.id)} startIcon={<Refresh />}>
-          Refresh
-        </Button>
-        <Button size="small" onClick={() => onDelete(competitor.id)} startIcon={<Delete />} color="error">
-          Delete
-        </Button>
-      </CardActions>
-    </Card>
-  );
-}
-
-function TabPanel({ children, value, index, ...other }) {
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`competitors-tabpanel-${index}`}
-      aria-labelledby={`competitors-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
-
 function Competitors() {
-  const [competitors, setCompetitors] = useState(mockCompetitors);
+  const [competitors, setCompetitors] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedCompetitor, setSelectedCompetitor] = useState(null);
-  const [tabValue, setTabValue] = useState(0);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [editingCompetitor, setEditingCompetitor] = useState(null);
 
-  const filteredCompetitors = competitors.filter(competitor =>
-    competitor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    competitor.website.toLowerCase().includes(searchQuery.toLowerCase())
-  );
-
-  const handleAddCompetitor = () => {
-    setSelectedCompetitor(null);
-    setDialogOpen(true);
-  };
-
-  const handleEditCompetitor = (competitor) => {
-    setSelectedCompetitor(competitor);
-    setDialogOpen(true);
-  };
-
-  const handleDeleteCompetitor = (competitorId) => {
-    setCompetitors(competitors.filter(c => c.id !== competitorId));
-  };
-
-  const handleRefreshCompetitor = (competitorId) => {
-    // In a real app, this would trigger a new scrape
-    console.log('Refreshing competitor:', competitorId);
-  };
-
-  const handleSaveCompetitor = (competitorData) => {
-    if (selectedCompetitor) {
-      setCompetitors(competitors.map(c =>
-        c.id === selectedCompetitor.id
-          ? { ...c, ...competitorData }
-          : c
-      ));
-    } else {
-      const newCompetitor = {
-        ...competitorData,
-        id: Math.max(...competitors.map(c => c.id)) + 1,
-        productsTracked: 0,
-        avgPrice: 0,
-        priceChange: 0,
-        reliability: 100,
-        responseTime: 0,
-        lastScrape: 'Never',
-      };
-      setCompetitors([...competitors, newCompetitor]);
+  const loadCompetitors = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const response = await competitorAPI.getAll();
+      setCompetitors(response.data || []);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to load competitors');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const activeCompetitors = competitors.filter(c => c.status === 'active');
-  const errorCompetitors = competitors.filter(c => c.status === 'error');
+  useEffect(() => {
+    loadCompetitors();
+  }, []);
+
+  const onCreate = () => {
+    setEditingCompetitor(null);
+    setDialogOpen(true);
+  };
+
+  const onEdit = (competitor) => {
+    setEditingCompetitor(competitor);
+    setDialogOpen(true);
+  };
+
+  const onDelete = async (competitorId) => {
+    if (!window.confirm('Delete this competitor?')) return;
+    try {
+      await competitorAPI.delete(competitorId);
+      await loadCompetitors();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to delete competitor');
+    }
+  };
+
+  const onSubmit = async (payload) => {
+    try {
+      if (editingCompetitor) {
+        await competitorAPI.update(editingCompetitor.id, payload);
+      } else {
+        await competitorAPI.create(payload, { enqueue_scrape: true });
+      }
+      setDialogOpen(false);
+      await loadCompetitors();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to save competitor');
+    }
+  };
+
+  const onRefresh = async (competitor) => {
+    try {
+      await scraperAPI.fetch({
+        url: competitor.product_url,
+        competitor_id: competitor.id,
+        product_id: competitor.product_id,
+        allow_playwright_fallback: true,
+      });
+      await loadCompetitors();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to scrape competitor URL');
+    }
+  };
+
+  const summary = useMemo(
+    () => ({
+      total: competitors.length,
+      active: competitors.filter((item) => item.is_active).length,
+      withPrice: competitors.filter((item) => typeof item.last_price === 'number').length,
+    }),
+    [competitors]
+  );
 
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">
-          Competitors
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleAddCompetitor}
-        >
-          Add Competitor
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h4">Competitors</Typography>
+          <Chip label={`${summary.total} total`} color="info" variant="outlined" />
+          <Chip label={`${summary.active} active`} color="success" variant="outlined" />
+          <Chip label={`${summary.withPrice} priced`} color="warning" variant="outlined" />
+        </Box>
+        <Button variant="contained" startIcon={<Add />} onClick={onCreate}>Add Competitor</Button>
       </Box>
 
-      {errorCompetitors.length > 0 && (
-        <Alert severity="warning" sx={{ mb: 3 }}>
-          <Typography variant="body2">
-            {errorCompetitors.length} competitor{errorCompetitors.length > 1 ? 's have' : ' has'} scraping errors.
-            Check your configurations and network connectivity.
-          </Typography>
-        </Alert>
-      )}
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-          <Tab label="Overview" />
-          <Tab label="Price Comparison" />
-          <Tab label="Performance" />
-        </Tabs>
-      </Box>
-
-      <TabPanel value={tabValue} index={0}>
-        <Paper sx={{ mb: 3, p: 2 }}>
-          <TextField
-            fullWidth
-            placeholder="Search competitors by name or website..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Paper>
-
-        <Grid container spacing={3}>
-          {filteredCompetitors.map((competitor) => (
-            <Grid item xs={12} md={6} lg={4} key={competitor.id}>
-              <CompetitorCard
-                competitor={competitor}
-                onEdit={handleEditCompetitor}
-                onDelete={handleDeleteCompetitor}
-                onRefresh={handleRefreshCompetitor}
-              />
-            </Grid>
-          ))}
-          {filteredCompetitors.length === 0 && (
-            <Grid item xs={12}>
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="h6" color="textSecondary">
-                  No competitors found
-                </Typography>
-                <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                  {searchQuery ? 'Try adjusting your search terms' : 'Add your first competitor to start tracking prices'}
-                </Typography>
-                {!searchQuery && (
-                  <Button
-                    variant="outlined"
-                    startIcon={<Add />}
-                    onClick={handleAddCompetitor}
-                    sx={{ mt: 2 }}
-                  >
-                    Add Competitor
-                  </Button>
-                )}
-              </Paper>
-            </Grid>
-          )}
-        </Grid>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={1}>
-        <TableContainer component={Paper}>
+      <Paper>
+        <TableContainer>
           <Table>
             <TableHead>
               <TableRow>
-                <TableCell>Product</TableCell>
-                <TableCell align="right">Our Price</TableCell>
-                <TableCell align="right">Lowest Price</TableCell>
-                <TableCell align="center">Market Position</TableCell>
-                <TableCell>Competitor Prices</TableCell>
+                <TableCell>Competitor</TableCell>
+                <TableCell>Product ID</TableCell>
+                <TableCell>URL</TableCell>
+                <TableCell>Last Price</TableCell>
+                <TableCell>Last Checked</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {mockProductComparisons.map((product) => (
-                <TableRow key={product.id} hover>
+              {!loading && competitors.map((item) => (
+                <TableRow key={item.id} hover>
+                  <TableCell>{item.competitor_name}</TableCell>
+                  <TableCell sx={{ fontFamily: 'monospace' }}>{item.product_id}</TableCell>
                   <TableCell>
-                    <Typography variant="subtitle2">
-                      {product.productName}
+                    <Typography variant="body2" sx={{ maxWidth: 280 }} noWrap title={item.product_url}>
+                      {item.product_url}
                     </Typography>
+                  </TableCell>
+                  <TableCell>{item.last_price != null ? `${item.last_price} ${item.last_currency || ''}` : '-'}</TableCell>
+                  <TableCell>{item.last_checked_at ? new Date(item.last_checked_at).toLocaleString() : '-'}</TableCell>
+                  <TableCell>
+                    <Chip label={item.is_active ? 'Active' : 'Inactive'} color={item.is_active ? 'success' : 'default'} size="small" />
                   </TableCell>
                   <TableCell align="right">
-                    <Typography variant="h6">
-                      ${product.ourPrice}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="right">
-                    <Typography
-                      variant="subtitle2"
-                      color={product.ourPrice > product.lowestPrice ? 'error.main' : 'success.main'}
-                    >
-                      ${product.lowestPrice}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Chip
-                      label={product.marketPosition}
-                      color={
-                        product.marketPosition === 'Competitive' ? 'success' :
-                        product.marketPosition === 'Above Average' ? 'warning' : 'error'
-                      }
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <List dense>
-                      {product.competitors.map((comp, index) => (
-                        <ListItem key={index} sx={{ py: 0.5 }}>
-                          <ListItemText
-                            primary={
-                              <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-                                <Typography variant="body2">
-                                  {comp.name}
-                                </Typography>
-                                <Typography variant="body2" sx={{ fontWeight: 'bold' }}>
-                                  ${comp.price}
-                                </Typography>
-                              </Box>
-                            }
-                            secondary={
-                              <Chip
-                                label={comp.inStock ? 'In Stock' : 'Out of Stock'}
-                                color={comp.inStock ? 'success' : 'error'}
-                                size="small"
-                                variant="outlined"
-                              />
-                            }
-                          />
-                        </ListItem>
-                      ))}
-                    </List>
+                    <IconButton size="small" onClick={() => onRefresh(item)} title="Refresh now"><Refresh fontSize="small" /></IconButton>
+                    <IconButton size="small" onClick={() => onEdit(item)}><Edit fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => onDelete(item.id)}><Delete fontSize="small" /></IconButton>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </TableContainer>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={2}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Scraping Performance
-              </Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-                Monitor the reliability and performance of competitor data collection
-              </Typography>
-              <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.100' }}>
-                <Typography variant="body2" color="textSecondary">
-                  Performance metrics chart will be displayed here
-                </Typography>
-              </Box>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Quick Stats
-              </Typography>
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="Active Competitors"
-                    secondary={
-                      <Typography color="success.main">
-                        {activeCompetitors.length} tracking
-                      </Typography>
-                    }
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Products Tracked"
-                    secondary={`${competitors.reduce((sum, c) => sum + c.productsTracked, 0)} total`}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Avg Response Time"
-                    secondary={`${Math.round(competitors.reduce((sum, c) => sum + c.responseTime, 0) / competitors.length)}ms`}
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Overall Reliability"
-                    secondary={
-                      <Typography color="success.main">
-                        {Math.round(competitors.reduce((sum, c) => sum + c.reliability, 0) / competitors.length)}%
-                      </Typography>
-                    }
-                  />
-                </ListItem>
-              </List>
-            </Paper>
-          </Grid>
-        </Grid>
-      </TabPanel>
+        {!loading && competitors.length === 0 && (
+          <Box sx={{ p: 3 }}>
+            <Typography color="text.secondary">No competitors yet.</Typography>
+          </Box>
+        )}
+        {loading && (
+          <Box sx={{ p: 3 }}>
+            <Typography>Loading competitors...</Typography>
+          </Box>
+        )}
+      </Paper>
 
       <CompetitorDialog
         open={dialogOpen}
+        mode={editingCompetitor ? 'edit' : 'create'}
+        initialValue={editingCompetitor}
         onClose={() => setDialogOpen(false)}
-        competitor={selectedCompetitor}
-        onSave={handleSaveCompetitor}
+        onSubmit={onSubmit}
       />
     </Box>
   );

@@ -1,0 +1,80 @@
+services:
+  # Application Services (Dev)
+  # Note: MongoDB is intentionally NOT started here because dev uses MongoDB Atlas,
+  # matching production. Configure Atlas in `../../.env` via `MONGODB_URL`.
+  redis:
+    image: redis:7.2-alpine
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    networks:
+      - omnipricex-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - omnipricex-network
+
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - ./omniprice:/app/omniprice
+      - .env:/app/.env
+    command: uvicorn omniprice.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - redis
+      - rabbitmq
+    networks:
+      - omnipricex-network
+
+  scrape-worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    env_file:
+      - .env
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - REDIS_URL=redis://redis:6379/0
+      - RABBITMQ_URL=amqp://guest:guest@rabbitmq:5672/
+    volumes:
+      - ./omniprice:/app/omniprice
+      - .env:/app/.env
+    command: python -m omniprice.workers.scrape_consumer
+    depends_on:
+      - rabbitmq
+    restart: unless-stopped
+    networks:
+      - omnipricex-network
+
+  frontend:
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    environment:
+      - REACT_APP_API_URL=http://localhost:8000
+    networks:
+      - omnipricex-network
+
+networks:
+  omnipricex-network:
+    driver: bridge

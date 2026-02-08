@@ -4,7 +4,8 @@ FROM node:18-alpine as builder
 WORKDIR /app
 
 # Copy package.json and package-lock.json (if available)
-COPY frontend/package*.json ./
+# Note: this Dockerfile is built with `frontend/` as the build context.
+COPY package*.json ./
 
 # Install dependencies
 RUN npm install --legacy-peer-deps
@@ -13,7 +14,7 @@ RUN npm install --legacy-peer-deps
 RUN npm install ajv@latest --legacy-peer-deps
 
 # Copy source code
-COPY frontend/. .
+COPY . .
 
 # Build the application
 ENV GENERATE_SOURCEMAP=false
@@ -27,7 +28,7 @@ FROM nginx:alpine
 COPY --from=builder /app/build /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY frontend/nginx-simple.conf /etc/nginx/nginx.conf
+COPY nginx.conf /etc/nginx/nginx.conf
 
 # Expose port 80
 EXPOSE 80

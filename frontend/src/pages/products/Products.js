@@ -1,7 +1,16 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Alert,
   Box,
-  Typography,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
+  MenuItem,
   Paper,
   Table,
   TableBody,
@@ -9,210 +18,95 @@ import {
   TableContainer,
   TableHead,
   TableRow,
-  Button,
-  IconButton,
-  Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   TextField,
-  Grid,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Fab,
-  TablePagination,
-  InputAdornment,
+  Typography,
 } from '@mui/material';
-import {
-  Add,
-  Edit,
-  Delete,
-  Search,
-  Visibility,
-  TrendingUp,
-  TrendingDown,
-} from '@mui/icons-material';
+import { Add, Delete, Edit } from '@mui/icons-material';
 import { productAPI } from '../../services/api';
 
-// Mock data
-const mockProducts = [
-  {
-    id: 1,
-    name: 'iPhone 15 Pro',
-    sku: 'APPL-IP15P-128',
-    category: 'Electronics',
-    currentPrice: 999.99,
-    originalPrice: 1099.99,
-    status: 'active',
-    lastUpdated: '2024-01-15',
-    priceChange: -9.1,
-    competitors: 3,
-  },
-  {
-    id: 2,
-    name: 'Samsung Galaxy S24',
-    sku: 'SAMS-GS24-256',
-    category: 'Electronics',
-    currentPrice: 899.99,
-    originalPrice: 849.99,
-    status: 'active',
-    lastUpdated: '2024-01-14',
-    priceChange: 5.9,
-    competitors: 5,
-  },
-  {
-    id: 3,
-    name: 'MacBook Air M3',
-    sku: 'APPL-MBA-M3-13',
-    category: 'Computers',
-    currentPrice: 1199.99,
-    originalPrice: 1299.99,
-    status: 'inactive',
-    lastUpdated: '2024-01-10',
-    priceChange: -7.7,
-    competitors: 2,
-  },
-  {
-    id: 4,
-    name: 'Sony WH-1000XM5',
-    sku: 'SONY-WH1000XM5',
-    category: 'Audio',
-    currentPrice: 349.99,
-    originalPrice: 399.99,
-    status: 'active',
-    lastUpdated: '2024-01-16',
-    priceChange: -12.5,
-    competitors: 4,
-  },
-  {
-    id: 5,
-    name: 'Dell XPS 13',
-    sku: 'DELL-XPS13-I7',
-    category: 'Computers',
-    currentPrice: 1299.99,
-    originalPrice: 1199.99,
-    status: 'active',
-    lastUpdated: '2024-01-12',
-    priceChange: 8.3,
-    competitors: 3,
-  },
-];
+const emptyForm = {
+  name: '',
+  sku: '',
+  category: '',
+  cost: '',
+  current_price: '',
+  stock_quantity: '',
+  is_active: true,
+};
 
-function ProductDialog({ open, onClose, product, onSave }) {
-  const [formData, setFormData] = useState(
-    product || {
-      name: '',
-      sku: '',
-      category: '',
-      currentPrice: '',
-      originalPrice: '',
-      status: 'active',
+function ProductDialog({ open, mode, initialValue, onClose, onSubmit }) {
+  const [form, setForm] = useState(emptyForm);
+
+  useEffect(() => {
+    if (!initialValue) {
+      setForm(emptyForm);
+      return;
     }
-  );
+    setForm({
+      name: initialValue.name || '',
+      sku: initialValue.sku || '',
+      category: initialValue.category || '',
+      cost: initialValue.cost ?? '',
+      current_price: initialValue.current_price ?? '',
+      stock_quantity: initialValue.stock_quantity ?? '',
+      is_active: initialValue.is_active ?? true,
+    });
+  }, [initialValue]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(formData);
-    onClose();
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleChange = (field) => (event) => {
-    setFormData({ ...formData, [field]: event.target.value });
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const payload = {
+      name: form.name,
+      sku: form.sku || null,
+      category: form.category || null,
+      cost: form.cost === '' ? null : Number(form.cost),
+      current_price: Number(form.current_price),
+      stock_quantity: form.stock_quantity === '' ? null : Number(form.stock_quantity),
+      is_active: form.is_active === true || form.is_active === 'true',
+    };
+    onSubmit(payload);
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <form onSubmit={handleSubmit}>
-        <DialogTitle>
-          {product ? 'Edit Product' : 'Add New Product'}
-        </DialogTitle>
+        <DialogTitle>{mode === 'edit' ? 'Edit Product' : 'Add Product'}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Product Name"
-                value={formData.name}
-                onChange={handleChange('name')}
-                required
-              />
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
+            <Grid item xs={12}>
+              <TextField fullWidth required label="Name" name="name" value={form.name} onChange={handleChange} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="SKU"
-                value={formData.sku}
-                onChange={handleChange('sku')}
-                required
-              />
+              <TextField fullWidth label="SKU" name="sku" value={form.sku} onChange={handleChange} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={formData.category}
-                  onChange={handleChange('category')}
-                  label="Category"
-                  required
-                >
-                  <MenuItem value="Electronics">Electronics</MenuItem>
-                  <MenuItem value="Computers">Computers</MenuItem>
-                  <MenuItem value="Audio">Audio</MenuItem>
-                  <MenuItem value="Gaming">Gaming</MenuItem>
-                  <MenuItem value="Accessories">Accessories</MenuItem>
-                </Select>
-              </FormControl>
+              <TextField fullWidth label="Category" name="category" value={form.category} onChange={handleChange} />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={formData.status}
-                  onChange={handleChange('status')}
-                  label="Status"
-                >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                  <MenuItem value="discontinued">Discontinued</MenuItem>
-                </Select>
-              </FormControl>
+            <Grid item xs={12} md={4}>
+              <TextField fullWidth label="Cost" name="cost" type="number" value={form.cost} onChange={handleChange} />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Current Price"
-                type="number"
-                value={formData.currentPrice}
-                onChange={handleChange('currentPrice')}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                }}
-                required
-              />
+            <Grid item xs={12} md={4}>
+              <TextField fullWidth required label="Current Price" name="current_price" type="number" value={form.current_price} onChange={handleChange} />
             </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Original Price"
-                type="number"
-                value={formData.originalPrice}
-                onChange={handleChange('originalPrice')}
-                InputProps={{
-                  startAdornment: <InputAdornment position="start">$</InputAdornment>,
-                }}
-                required
-              />
+            <Grid item xs={12} md={4}>
+              <TextField fullWidth label="Stock Quantity" name="stock_quantity" type="number" value={form.stock_quantity} onChange={handleChange} />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField select fullWidth label="Status" name="is_active" value={String(form.is_active)} onChange={handleChange}>
+                <MenuItem value="true">Active</MenuItem>
+                <MenuItem value="false">Inactive</MenuItem>
+              </TextField>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="contained">
-            {product ? 'Update' : 'Add'} Product
-          </Button>
+          <Button type="submit" variant="contained">{mode === 'edit' ? 'Update' : 'Create'}</Button>
         </DialogActions>
       </form>
     </Dialog>
@@ -222,386 +116,137 @@ function ProductDialog({ open, onClose, product, onSave }) {
 function Products() {
   const [products, setProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [page, setPage] = useState(0);
-  const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [openDialog, setOpenDialog] = useState(false);
+  const [error, setError] = useState('');
+  const [dialogOpen, setDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    sku: '',
-    category: '',
-    price: '',
-    description: '',
-    brand: ''
-  });
 
-  // Fetch products from backend
-  useEffect(() => {
-    fetchProducts();
-  }, []);
-
-  const fetchProducts = async () => {
+  const loadProducts = async () => {
+    setLoading(true);
+    setError('');
     try {
-      setLoading(true);
       const response = await productAPI.getAll();
-      // Transform backend data to match frontend expectations
-      const transformedProducts = response.products.map(product => ({
-        id: product.id,
-        name: product.name,
-        sku: product.sku || `SKU-${product.id}`,
-        category: product.category,
-        currentPrice: product.price,
-        originalPrice: product.price * 1.1, // Mock original price
-        status: 'active',
-        lastUpdated: new Date(product.created_at).toISOString().split('T')[0],
-        priceChange: Math.random() * 20 - 10, // Mock price change
-        competitors: Math.floor(Math.random() * 5) + 1, // Mock competitor count
-        description: product.description,
-        brand: product.brand
-      }));
-      setProducts(transformedProducts);
-      setError(null);
+      setProducts(response.data || []);
     } catch (err) {
-      console.error('Failed to fetch products:', err);
-      setError('Failed to load products from backend');
+      setError(err.response?.data?.detail || 'Failed to load products');
     } finally {
       setLoading(false);
     }
   };
 
-  const handleCreateProduct = async () => {
-    try {
-      const newProduct = {
-        name: formData.name,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        category: formData.category,
-        brand: formData.brand
-      };
-      await productAPI.create(newProduct);
-      await fetchProducts(); // Refresh the list
-      setOpenDialog(false);
-      resetForm();
-    } catch (err) {
-      console.error('Failed to create product:', err);
-      alert('Failed to create product');
-    }
-  };
+  useEffect(() => {
+    loadProducts();
+  }, []);
 
-  const handleUpdateProduct = async () => {
-    try {
-      const updatedProduct = {
-        name: formData.name,
-        description: formData.description,
-        price: parseFloat(formData.price),
-        category: formData.category,
-        brand: formData.brand
-      };
-      await productAPI.update(editingProduct.id, updatedProduct);
-      await fetchProducts(); // Refresh the list
-      setOpenDialog(false);
-      setEditingProduct(null);
-      resetForm();
-    } catch (err) {
-      console.error('Failed to update product:', err);
-      alert('Failed to update product');
-    }
-  };
-
-  const handleDeleteProduct = async (productId) => {
-    if (window.confirm('Are you sure you want to delete this product?')) {
-      try {
-        await productAPI.delete(productId);
-        await fetchProducts(); // Refresh the list
-      } catch (err) {
-        console.error('Failed to delete product:', err);
-        alert('Failed to delete product');
-      }
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      sku: '',
-      category: '',
-      price: '',
-      description: '',
-      brand: ''
-    });
-  };
-
-  const openEditDialog = (product) => {
-    setEditingProduct(product);
-    setFormData({
-      name: product.name,
-      sku: product.sku,
-      category: product.category,
-      price: product.currentPrice.toString(),
-      description: product.description || '',
-      brand: product.brand || ''
-    });
-    setOpenDialog(true);
-  };
-
-  const openCreateDialog = () => {
+  const onCreate = () => {
     setEditingProduct(null);
-    resetForm();
-    setOpenDialog(true);
+    setDialogOpen(true);
   };
 
-  // Filter products based on search and category
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.sku.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === '' || product.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const onEdit = (product) => {
+    setEditingProduct(product);
+    setDialogOpen(true);
+  };
 
-  // Get unique categories for filter
-  const categories = [...new Set(products.map(p => p.category))];
+  const onDelete = async (productId) => {
+    if (!window.confirm('Delete this product?')) return;
+    try {
+      await productAPI.delete(productId);
+      await loadProducts();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to delete product');
+    }
+  };
 
-  if (loading) {
-    return (
-      <Box sx={{ flexGrow: 1, p: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Products
-        </Typography>
-        <Typography>Loading products from backend...</Typography>
-      </Box>
-    );
-  }
+  const onSubmit = async (payload) => {
+    try {
+      if (editingProduct) {
+        await productAPI.update(editingProduct.id, payload);
+      } else {
+        await productAPI.create(payload);
+      }
+      setDialogOpen(false);
+      await loadProducts();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to save product');
+    }
+  };
 
-  if (error) {
-    return (
-      <Box sx={{ flexGrow: 1, p: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          Products
-        </Typography>
-        <Typography color="error">{error}</Typography>
-        <Button onClick={fetchProducts} sx={{ mt: 2 }}>
-          Retry
-        </Button>
-      </Box>
-    );
-  }
+  const summary = useMemo(
+    () => ({
+      total: products.length,
+      active: products.filter((item) => item.is_active).length,
+    }),
+    [products]
+  );
 
   return (
     <Box sx={{ flexGrow: 1 }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h4" gutterBottom sx={{ mr: 2 }}>
-          Products
-        </Typography>
-        <Chip 
-          label="🔗 Live from Backend API" 
-          color="success" 
-          variant="outlined"
-          sx={{ fontSize: '0.9rem' }}
-        />
-        <Chip 
-          label={`${products.length} products loaded`} 
-          color="info" 
-          variant="outlined"
-          sx={{ ml: 1, fontSize: '0.9rem' }}
-        />
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h4">Products</Typography>
+          <Chip label={`${summary.total} total`} color="info" variant="outlined" />
+          <Chip label={`${summary.active} active`} color="success" variant="outlined" />
+        </Box>
+        <Button variant="contained" startIcon={<Add />} onClick={onCreate}>Add Product</Button>
       </Box>
-      
-      {/* Search and Filter Controls */}
-      <Grid container spacing={2} sx={{ mb: 3 }}>
-        <Grid item xs={12} md={6}>
-          <TextField
-            fullWidth
-            placeholder="Search products..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Search />
-                </InputAdornment>
-              ),
-            }}
-          />
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <FormControl fullWidth>
-            <InputLabel>Category</InputLabel>
-            <Select
-              value={selectedCategory}
-              label="Category"
-              onChange={(e) => setSelectedCategory(e.target.value)}
-            >
-              <MenuItem value="">All Categories</MenuItem>
-              {categories.map((category) => (
-                <MenuItem key={category} value={category}>
-                  {category}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-        </Grid>
-        <Grid item xs={12} md={3}>
-          <Button
-            fullWidth
-            variant="contained"
-            startIcon={<Add />}
-            onClick={openCreateDialog}
-            sx={{ height: '56px' }}
-          >
-            Add Product
-          </Button>
-        </Grid>
-      </Grid>
 
-      {/* Products Table */}
-      <TableContainer component={Paper}>
-        <Table>
-          <TableHead>
-            <TableRow>
-              <TableCell>Product Name</TableCell>
-              <TableCell>SKU</TableCell>
-              <TableCell>Category</TableCell>
-              <TableCell>Current Price</TableCell>
-              <TableCell>Price Change</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredProducts
-              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-              .map((product) => (
-                <TableRow key={product.id}>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+      <Paper>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>SKU</TableCell>
+                <TableCell>Category</TableCell>
+                <TableCell>Cost</TableCell>
+                <TableCell>Current Price</TableCell>
+                <TableCell>Stock</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {!loading && products.map((product) => (
+                <TableRow key={product.id} hover>
+                  <TableCell>{product.name}</TableCell>
+                  <TableCell>{product.sku || '-'}</TableCell>
+                  <TableCell>{product.category || '-'}</TableCell>
+                  <TableCell>{product.cost ?? '-'}</TableCell>
+                  <TableCell>{product.current_price}</TableCell>
+                  <TableCell>{product.stock_quantity ?? '-'}</TableCell>
                   <TableCell>
-                    <Typography variant="subtitle1">{product.name}</Typography>
-                    <Typography variant="body2" color="textSecondary">
-                      {product.brand}
-                    </Typography>
+                    <Chip label={product.is_active ? 'Active' : 'Inactive'} color={product.is_active ? 'success' : 'default'} size="small" />
                   </TableCell>
-                  <TableCell>{product.sku}</TableCell>
-                  <TableCell>
-                    <Chip label={product.category} size="small" />
-                  </TableCell>
-                  <TableCell>${product.currentPrice}</TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                      {product.priceChange > 0 ? (
-                        <TrendingUp sx={{ color: 'success.main', mr: 0.5 }} />
-                      ) : (
-                        <TrendingDown sx={{ color: 'error.main', mr: 0.5 }} />
-                      )}
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          color: product.priceChange > 0 ? 'success.main' : 'error.main',
-                        }}
-                      >
-                        {product.priceChange.toFixed(1)}%
-                      </Typography>
-                    </Box>
-                  </TableCell>
-                  <TableCell>
-                    <Chip
-                      label={product.status}
-                      color={product.status === 'active' ? 'success' : 'default'}
-                      size="small"
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => openEditDialog(product)} size="small">
-                      <Edit />
-                    </IconButton>
-                    <IconButton 
-                      onClick={() => handleDeleteProduct(product.id)} 
-                      size="small"
-                      color="error"
-                    >
-                      <Delete />
-                    </IconButton>
+                  <TableCell align="right">
+                    <IconButton size="small" onClick={() => onEdit(product)}><Edit fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => onDelete(product.id)}><Delete fontSize="small" /></IconButton>
                   </TableCell>
                 </TableRow>
               ))}
-          </TableBody>
-        </Table>
-        <TablePagination
-          rowsPerPageOptions={[5, 10, 25]}
-          component="div"
-          count={filteredProducts.length}
-          rowsPerPage={rowsPerPage}
-          page={page}
-          onPageChange={(event, newPage) => setPage(newPage)}
-          onRowsPerPageChange={(event) => {
-            setRowsPerPage(parseInt(event.target.value, 10));
-            setPage(0);
-          }}
-        />
-      </TableContainer>
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {!loading && products.length === 0 && (
+          <Box sx={{ p: 3 }}>
+            <Typography color="text.secondary">No products yet.</Typography>
+          </Box>
+        )}
+        {loading && (
+          <Box sx={{ p: 3 }}>
+            <Typography>Loading products...</Typography>
+          </Box>
+        )}
+      </Paper>
 
-      {/* Add/Edit Product Dialog */}
-      <Dialog open={openDialog} onClose={() => setOpenDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingProduct ? 'Edit Product' : 'Add New Product'}
-        </DialogTitle>
-        <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Product Name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Brand"
-                value={formData.brand}
-                onChange={(e) => setFormData({ ...formData, brand: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Category"
-                value={formData.category}
-                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Price"
-                type="number"
-                value={formData.price}
-                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-              />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                multiline
-                rows={3}
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDialog(false)}>Cancel</Button>
-          <Button 
-            onClick={editingProduct ? handleUpdateProduct : handleCreateProduct}
-            variant="contained"
-          >
-            {editingProduct ? 'Update' : 'Create'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <ProductDialog
+        open={dialogOpen}
+        mode={editingProduct ? 'edit' : 'create'}
+        initialValue={editingProduct}
+        onClose={() => setDialogOpen(false)}
+        onSubmit={onSubmit}
+      />
     </Box>
   );
 }

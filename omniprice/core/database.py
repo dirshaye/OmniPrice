@@ -18,8 +18,11 @@ from omniprice.core.config import settings
 
 # Import all models here to register them with Beanie
 # We will add models to this list as we create them
-from omniprice.modules.auth.models import User
-# from omniprice.modules.product.models import Product
+from omniprice.models.auth import User
+from omniprice.models.competitor import Competitor, PriceHistory
+from omniprice.models.product import Product
+from omniprice.models.pricing import PricingRule
+from omniprice.models.scrape import ScrapeExecution
 
 logger = logging.getLogger(__name__)
 
@@ -42,7 +45,11 @@ async def init_db():
             database=database,
             document_models=[
                 User,
-                # Product,
+                Competitor,
+                PriceHistory,
+                Product,
+                PricingRule,
+                ScrapeExecution,
             ]
         )
         

@@ -9,15 +9,36 @@ dist/
 
 # Environment variables
 .env
+.env.*
+!.env.example
+frontend/.env
+frontend/.env.*
+infra/docker/.env.prod
 
 # Logs
 *.log
 
-# Django
-*.pyc
+# Python virtualenvs
+.venv/
+
+# Python cache
 __pycache__/
-db.sqlite3
-media/
+*.pyc
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
+*.tfvars
+*.tfvars.json
+!*.tfvars.example
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
 
 #copilot-instruction
 .github/copilot-instructions.md

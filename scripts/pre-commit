@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+staged_files="$(git diff --cached --name-only)"
+if [[ -z "${staged_files}" ]]; then
+  exit 0
+fi
+
+if echo "${staged_files}" | grep -E '(^|/)(.*\\.tfstate(\\..*)?|terraform\\.tfstate(\\..*)?|\\.env\\.prod)$' >/dev/null; then
+  echo "ERROR: refusing to commit tfstate or .env.prod files."
+  echo "Tip: commit *.example templates and keep real secrets/state off-repo."
+  exit 1
+fi
+
+if git diff --cached -U0 -- . | grep -E '^\\+.*mongodb\\+srv://[^[:space:]]+:[^[:space:]]+@' >/dev/null; then
+  echo "ERROR: potential MongoDB credentials detected in staged changes."
+  exit 1
+fi
+
+exit 0
+

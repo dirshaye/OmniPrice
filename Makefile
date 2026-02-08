@@ -1,128 +1,59 @@
-# OmniPriceX Makefile
+# OmniPrice Makefile
 
-.PHONY: help install test lint format build deploy generate-proto clean
+.PHONY: help setup-env install install-frontend install-backend test test-integration test-e2e e2e-install-browser verify build up down logs clean terraform-init terraform-plan terraform-apply
 
-help: ## Show this help message
-	@echo 'Usage: make [target]'
+help: ## Show available commands
+	@echo 'Usage: make <target>'
 	@echo ''
-	@echo 'Targets:'
-	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "  %-15s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
+	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z0-9_-]+:.*?## / {printf "  %-22s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-# Development commands
-install: ## Install all dependencies
-	@echo "Installing Python dependencies..."
+setup-env: ## Create .env from template if missing
+	@if [ ! -f .env ]; then cp .env.example .env && echo ".env created"; else echo ".env already exists"; fi
+
+install-backend: ## Install Python dependencies
 	pip install -r requirements.txt
-	@echo "Installing development dependencies..."
-	pip install -r requirements-dev.txt
-	@echo "Installing frontend dependencies..."
+
+install-frontend: ## Install frontend dependencies
 	cd frontend && npm install
 
-test: ## Run all tests
-	@echo "Running Python tests..."
-	@for service in services/*/; do \
-		if [ -d "$$service/tests" ]; then \
-			echo "Testing $$service"; \
-			pytest "$$service/tests/" -v; \
-		fi; \
-	done
-	@echo "Running integration tests..."
-	pytest tests/integration/ -v
-	@echo "Running frontend tests..."
-	cd frontend && npm test -- --coverage --watchAll=false
+install: install-backend install-frontend ## Install all dependencies
 
-lint: ## Run linting on all code
-	@echo "Linting Python code..."
-	flake8 services/ shared/
-	mypy services/ shared/
-	@echo "Linting frontend code..."
-	cd frontend && npm run lint
+test: ## Run all backend tests (unit + integration)
+	pytest -q
 
-format: ## Format all code
-	@echo "Formatting Python code..."
-	black services/ shared/
-	isort services/ shared/
-	@echo "Formatting frontend code..."
-	cd frontend && npm run format
+test-integration: ## Run integration test suite only
+	pytest tests/integration -v
 
-build: ## Build all Docker images
-	docker-compose build
+e2e-install-browser: ## Install Playwright Chromium browser
+	python -m playwright install chromium
 
-# --- MVP MONOLITH WORKFLOW ---
-mvp-up: ## Run minimal monolith backend + frontend
-	docker compose up -d --build backend frontend
+test-e2e: ## Run Playwright E2E tests (requires frontend+backend running)
+	pytest -m e2e tests/e2e -v
 
-mvp-down: ## Stop MVP containers
+verify: ## Run backend smoke verification script
+	python scripts/verify_setup.py
+
+build: ## Build Docker images
+	docker compose build
+
+up: ## Start local stack (backend, frontend, queue/cache)
+	docker compose up -d --build
+
+down: ## Stop local stack
 	docker compose down
 
-mvp-logs: ## Tail logs for backend
+logs: ## Tail backend logs
 	docker compose logs -f backend
 
-mvp-reset: ## Full reset of MVP (containers + dangling images)
-	docker compose down -v --remove-orphans && docker system prune -f
-
-deploy: ## Deploy to production
-	./scripts/deploy.sh
-
-generate-proto: ## Generate gRPC code from proto files
-	chmod +x scripts/generate_grpc.sh
-	./scripts/generate_grpc.sh
-
-clean: ## Clean up containers, networks, and volumes
-	docker-compose down -v --remove-orphans
+clean: ## Remove containers, volumes, and dangling images
+	docker compose down -v --remove-orphans
 	docker system prune -f
 
-# Development workflow
-dev: generate-proto build ## Setup development environment
-	docker-compose up -d
+terraform-init: ## Terraform init (infra/terraform)
+	./scripts/deploy.sh init
 
-# Infrastructure commands
-terraform-init: ## Initialize Terraform
-	cd infrastructure/terraform && terraform init
+terraform-plan: ## Terraform validate + plan (infra/terraform)
+	./scripts/deploy.sh plan
 
-terraform-plan: ## Plan Terraform changes
-	cd terraform && terraform plan
-
-terraform-apply: ## Apply Terraform changes
-	cd terraform && terraform apply
-
-terraform-destroy: ## Destroy Terraform infrastructure
-	cd terraform && terraform destroy
-
-# Docker commands
-docker-login: ## Login to AWS ECR
-	aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin $$(aws sts get-caller-identity --query Account --output text).dkr.ecr.us-east-1.amazonaws.com
-
-# Development helpers
-install-deps: ## Install development dependencies
-	pip install -r requirements.txt
-	@for service in services/*/; do \
-		if [ -f "$$service/requirements.txt" ]; then \
-			echo "Installing dependencies for $$service"; \
-			pip install -r "$$service/requirements.txt"; \
-		fi; \
-	done
-
-check-services: ## Check if all services are healthy
-	@echo "Checking service health..."
-	@for service in api-gateway product-service pricing-service scraper-service competitor-service llm-assistant-service auth-service; do \
-		echo -n "$$service: "; \
-		if docker-compose ps $$service | grep -q "Up"; then \
-			echo "✅ Running"; \
-		else \
-			echo "❌ Not running"; \
-		fi; \
-	done
-
-# Git helpers
-git-hooks: ## Setup git hooks
-	@echo "Setting up git hooks..."
-	# Add pre-commit hooks here if needed
-
-# Environment setup
-setup-env: ## Setup environment file
-	@if [ ! -f .env ]; then \
-		cp .env.example .env; \
-		echo "Created .env file. Please edit it with your configuration."; \
-	else \
-		echo ".env file already exists."; \
-	fi
+terraform-apply: ## Terraform apply (infra/terraform)
+	./scripts/deploy.sh apply

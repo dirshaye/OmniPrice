@@ -6,11 +6,6 @@ pydantic==2.5.0
 pydantic[email]==2.5.0
 pydantic-settings==2.1.0
 
-# gRPC & Protocol Buffers
-grpcio==1.60.0
-grpcio-tools==1.60.0
-grpcio-health-checking==1.59.3
-protobuf==4.25.8
 
 # Database - MongoDB
 motor==3.3.2
@@ -26,10 +21,7 @@ bcrypt==4.1.2
 httpx==0.28.1
 aiohttp==3.9.1
 python-multipart==0.0.6
-
-# Task Queue & Background Jobs
-celery==5.3.4
-kombu==5.3.4
+aio-pika==9.4.3
 redis==5.0.1
 
 # AI & LLM Integration
@@ -42,17 +34,12 @@ langchain-google-genai==0.0.8
 playwright==1.40.0
 beautifulsoup4==4.12.2
 
-# Data Processing
-pandas==2.1.4
-numpy==1.25.2
-
 # Environment & Configuration
 python-dotenv==1.0.0
 email-validator==2.1.0.post1
 
-# Monitoring & Logging
-prometheus-client==0.19.0
-structlog==23.2.0
+# Testing & Verification
+pytest==7.4.3
+pytest-asyncio==0.21.1
+requests==2.31.0
 
-# MQTT for IoT/Real-time (if needed)
-asyncio-mqtt==0.16.1

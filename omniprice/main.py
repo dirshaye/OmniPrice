@@ -11,12 +11,11 @@ Technical Explanation:
 Startup Flow:
 1. Load configuration from .env
 2. Connect to MongoDB
-3. Connect to Redis
-4. Register API routes
-5. Start Uvicorn server
+3. Register API routes
+4. Start Uvicorn server
 """
 
-from fastapi import FastAPI, Request, status
+from fastapi import Depends, FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
@@ -25,7 +24,14 @@ import sys
 
 from omniprice.core.config import settings
 from omniprice.core.database import init_db
-from omniprice.api.v1 import auth
+from omniprice.core.security import get_current_user_id
+from omniprice.api.v1.endpoints import analytics
+from omniprice.api.v1.endpoints import auth
+from omniprice.api.v1.endpoints import competitors
+from omniprice.api.v1.endpoints import llm
+from omniprice.api.v1.endpoints import pricing
+from omniprice.api.v1.endpoints import products
+from omniprice.api.v1.endpoints import scraper
 from omniprice.core.exceptions import OmniPriceException, exception_to_http_response
 
 # Configure logging
@@ -44,13 +50,13 @@ async def lifespan(app: FastAPI):
     Handles startup and shutdown events
     """
     # Startup: Connect to DB
-    logger.info("🚀 Starting OmniPrice API...")
+    logger.info("Starting OmniPrice API...")
     await init_db()
     
     yield
     
     # Shutdown: Cleanup
-    logger.info("🛑 Shutting down OmniPrice API...")
+    logger.info("Shutting down OmniPrice API...")
 
 
 # Create FastAPI application
@@ -64,7 +70,6 @@ app = FastAPI(
     lifespan=lifespan,
     debug=settings.DEBUG,
 )
-
 
 # CORS Middleware
 # Technical Explanation:
@@ -159,7 +164,6 @@ async def health_check():
         JSON with health status
     """
     # TODO: Add database connectivity check
-    # TODO: Add Redis connectivity check
     
     return {
         "status": "healthy",
@@ -168,8 +172,45 @@ async def health_check():
 
 
 # Register Routers
-# We only register Auth for now (Phase 1)
+protected_dependencies = [Depends(get_current_user_id)]
+
 app.include_router(auth.router, prefix=f"{settings.API_V1_PREFIX}/auth", tags=["Authentication"])
+app.include_router(
+    competitors.router,
+    prefix=f"{settings.API_V1_PREFIX}/competitors",
+    tags=["Competitors"],
+    dependencies=protected_dependencies,
+)
+app.include_router(
+    llm.router,
+    prefix=f"{settings.API_V1_PREFIX}/llm",
+    tags=["LLM"],
+    dependencies=protected_dependencies,
+)
+app.include_router(
+    products.router,
+    prefix=f"{settings.API_V1_PREFIX}/products",
+    tags=["Products"],
+    dependencies=protected_dependencies,
+)
+app.include_router(
+    pricing.router,
+    prefix=f"{settings.API_V1_PREFIX}/pricing",
+    tags=["Pricing"],
+    dependencies=protected_dependencies,
+)
+app.include_router(
+    analytics.router,
+    prefix=f"{settings.API_V1_PREFIX}/analytics",
+    tags=["Analytics"],
+    dependencies=protected_dependencies,
+)
+app.include_router(
+    scraper.router,
+    prefix=f"{settings.API_V1_PREFIX}/scraper",
+    tags=["Scraper"],
+    dependencies=protected_dependencies,
+)
 
 
 if __name__ == "__main__":

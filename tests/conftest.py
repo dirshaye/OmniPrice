@@ -1,31 +1,39 @@
-"""
-Test configuration and fixtures for OmniPriceX tests.
-"""
+"""Shared pytest fixtures for OmniPrice tests."""
+
+from __future__ import annotations
+
+import os
 
 import pytest
-import asyncio
-from typing import AsyncGenerator
-from httpx import AsyncClient
-from motor.motor_asyncio import AsyncIOMotorClient
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """Create an instance of the default event loop for the test session."""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
+# Keep test startup deterministic even when local .env has non-boolean debug values.
+os.environ.setdefault("DEBUG", "false")
+
 
 @pytest.fixture
-async def test_db():
-    """Provide a test database."""
-    client = AsyncIOMotorClient("mongodb://localhost:27017")
-    db = client.test_omnipricex
-    yield db
-    await client.drop_database("test_omnipricex")
-    client.close()
+def auth_headers():
+    """Return a valid JWT Authorization header for protected endpoint tests."""
+    from omniprice.core.security import create_access_token
 
-@pytest.fixture
-async def api_client() -> AsyncGenerator[AsyncClient, None]:
-    """Provide an HTTP client for API testing."""
-    async with AsyncClient(base_url="http://localhost:8000") as client:
-        yield client
+    token = create_access_token({"sub": "tests@omniprice.local"})
+    return {"Authorization": f"Bearer {token}"}
+
+
+@pytest.fixture(autouse=True)
+def reset_runtime_state():
+    """
+    Keep tests isolated by resetting in-memory cache and rate-limit state.
+    """
+    from omniprice.core import cache as cache_module
+    from omniprice.core import ratelimit as ratelimit_module
+
+    cache_module._memory_cache.clear()
+    cache_module._redis_client = None
+    # Force tests to use in-memory fallback and avoid cross-test contamination from local Redis.
+    cache_module._redis_init_attempted = True
+
+    ratelimit_module._memory_buckets.clear()
+    ratelimit_module._redis_client = None
+    ratelimit_module._redis_init_attempted = True
+
+    yield

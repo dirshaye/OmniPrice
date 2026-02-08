@@ -7,5 +7,5 @@ Routes are thin - they only handle HTTP concerns:
 - Calling service layer for business logic
 - Returning HTTP responses
 
-Business logic lives in modules/, not here!
+Business logic lives in services/, not here.
 """

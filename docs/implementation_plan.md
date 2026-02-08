@@ -1,39 +1,91 @@
-# OmniPrice Implementation Roadmap
+# OmniPrice Implementation Plan
 
-This document outlines the strategic plan to build the OmniPrice Modular Monolith, moving from a "Walking Skeleton" to a full MVP.
+This document tracks the practical build order for OmniPrice.
 
-## Phase 1: The Foundation (Core & Auth)
-**Goal:** A running server with secure user access.
-1.  **Database Setup**: Finalize `core/database.py` (MongoDB/Motor/Beanie).
-2.  **Authentication Module**:
-    *   User Models (Beanie Documents).
-    *   Registration & Login Logic.
-    *   JWT Token Generation & Validation.
-3.  **Frontend Auth**: Connect React Login/Register pages to the backend.
+## Current Scope
 
-## Phase 2: The "Noun" (Product Module)
-**Goal:** Users can manage the core entities (Products).
-1.  **Backend**:
-    *   Product Models (Name, SKU, Cost, Price).
-    *   CRUD API Endpoints.
-2.  **Frontend**:
-    *   Connect `Products` page to list, add, and edit real products.
+- Keep architecture as a modular monolith (FastAPI + React).
+- Prioritize shipping a stable product over adding extra services.
+- Use Docker for local/dev parity.
+- Deploy on AWS with Terraform + GitHub Actions.
+- Focus market: Turkish retail price tracking (Migros, A101, Sok, Bim).
 
-## Phase 3: The "Input" (Scraper & Competitors)
-**Goal:** Ingest external data for dynamic pricing.
-1.  **Competitor Module**: Define "Competitor" entities linked to Products.
-2.  **Scraper Engine**:
-    *   Setup **Celery** (Task Queue) + **Redis**.
-    *   Implement **Playwright** tasks to visit URLs and extract prices.
-3.  **Frontend**: Display competitor data on the dashboard.
+## Product Goal
 
-## Phase 4: The "Brain" (Pricing & LLM)
-**Goal:** Intelligent analysis and price optimization.
-1.  **Pricing Engine**: Implement rule-based logic (e.g., "5% below average").
-2.  **LLM Integration**: Connect Google Gemini API for context/sentiment analysis.
-3.  **Frontend**: Pricing Dashboard with AI suggestions.
+Retailers can:
 
-## DevOps & Infrastructure Strategy
-*   **Containerization**: Keep `docker-compose` active for local development (Mongo, Redis) immediately.
-*   **Deployment**: Configure CI/CD pipelines after **Phase 2** is stable.
-*   **Monitoring**: Configure Prometheus/Grafana dashboards during **Phase 3** (when we have background tasks to monitor).
+1. Create products.
+2. Attach competitor product URLs.
+3. Scrape and store competitor prices.
+4. View history/analytics.
+5. Get rule-based pricing recommendations.
+6. Ask the LLM assistant for explanation and context.
+
+## Productization Priorities
+
+- Selector drift handling:
+  - Keep per-site adapters and monitor extraction confidence/source.
+- Retry/backoff + failure classification:
+  - Use bounded retries and dead-letter queue (DLQ) instead of infinite requeue.
+- Anti-bot/legal/TOS guardrails:
+  - Enforce optional domain allowlist policy for production.
+- Dedupe + canonical matching:
+  - Canonicalize URLs and prevent duplicate competitor tracking for same product.
+- Observability:
+  - Track scrape success/failure, latency, domain/source metrics, and error classes.
+
+## MVP Backlog
+
+### Backend (high priority)
+
+- [x] Auth (JWT)
+- [x] Products API
+- [x] Competitors API
+- [x] Scraper fetch + enqueue API
+- [x] Pricing rule API + recommendation endpoint
+- [x] Analytics from real DB data
+- [x] LLM endpoint with provider error handling
+- [x] Integration tests for vertical slices and error paths
+
+### Frontend (high priority)
+
+- [x] Auth pages wired to backend
+- [x] Dashboard wired to analytics endpoints
+- [x] Products page CRUD wired to backend
+- [x] Competitors page CRUD + manual refresh wired
+- [x] Pricing page rules + recommendation wired
+- [x] LLM playground wired
+- [ ] Final UX polish and edge-case handling
+
+### DevOps / Cloud (next)
+
+- [ ] Recreate clean Terraform stack (`infra/terraform`)
+- [ ] Provision AWS baseline (VPC, SG, IAM, EC2)
+- [ ] Publish Docker images from GitHub Actions
+- [ ] Deploy app to EC2 via compose pull/up
+- [ ] Add post-deploy smoke check job
+
+## Testing Strategy
+
+- Unit: targeted pure logic tests.
+- Integration: API-level vertical slice tests (already in place).
+- E2E: Playwright smoke tests for login/register/dashboard path.
+
+## Deployment Strategy (AWS)
+
+Phase 1:
+
+- EC2 + Docker Compose
+- Atlas (external MongoDB)
+- Redis + RabbitMQ as containers
+
+Phase 2:
+
+- Terraform remote state backend (S3 + DynamoDB lock)
+- Harden CI/CD and rollback flow
+
+## Non-Goals (for now)
+
+- Full microservice split
+- Lambda migration while core feature set is still changing
+- Kubernetes orchestration

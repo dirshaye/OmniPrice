@@ -1,577 +1,297 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import {
-  Box,
-  Typography,
-  Paper,
-  Grid,
-  Card,
-  CardContent,
-  CardActions,
-  Button,
-  Switch,
-  FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-  TextField,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Chip,
-  Divider,
-  List,
-  ListItem,
-  ListItemText,
-  ListItemSecondaryAction,
-  IconButton,
-  Tabs,
-  Tab,
   Alert,
-  InputAdornment,
+  Box,
+  Button,
+  Chip,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  Grid,
+  IconButton,
+  MenuItem,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  TextField,
+  Typography,
 } from '@mui/material';
-import {
-  Add,
-  Edit,
-  Delete,
-  PlayArrow,
-  Pause,
-  Settings,
-  TrendingUp,
-  TrendingDown,
-  Timeline,
-} from '@mui/icons-material';
+import { Add, Delete, Edit, PlayArrow } from '@mui/icons-material';
+import { pricingAPI, productAPI } from '../../services/api';
 
-const mockPricingRules = [
-  {
-    id: 1,
-    name: 'Competitive Pricing - Electronics',
-    description: 'Automatically adjust prices to stay 5% below competitor average',
-    type: 'competitive',
-    status: 'active',
-    category: 'Electronics',
-    adjustment: -5,
-    conditions: ['competitor_price_below_threshold', 'stock_available'],
-    products: 25,
-    lastTriggered: '2024-01-15 14:30',
-    impact: { revenue: 12.5, margin: -2.1 }
-  },
-  {
-    id: 2,
-    name: 'Dynamic Pricing - High Demand',
-    description: 'Increase prices by 10% when demand exceeds supply',
-    type: 'dynamic',
-    status: 'active',
-    category: 'All Categories',
-    adjustment: 10,
-    conditions: ['high_demand', 'low_stock'],
-    products: 50,
-    lastTriggered: '2024-01-14 09:15',
-    impact: { revenue: 8.3, margin: 15.2 }
-  },
-  {
-    id: 3,
-    name: 'Clearance Pricing',
-    description: 'Reduce prices by 20% for products with high inventory',
-    type: 'clearance',
-    status: 'inactive',
-    category: 'Audio',
-    adjustment: -20,
-    conditions: ['high_inventory', 'slow_moving'],
-    products: 12,
-    lastTriggered: '2024-01-10 16:45',
-    impact: { revenue: -5.7, margin: -12.8 }
-  },
-  {
-    id: 4,
-    name: 'Premium Product Markup',
-    description: 'Maintain premium pricing for flagship products',
-    type: 'fixed',
-    status: 'active',
-    category: 'Computers',
-    adjustment: 15,
-    conditions: ['premium_brand', 'new_release'],
-    products: 8,
-    lastTriggered: '2024-01-16 11:20',
-    impact: { revenue: 22.1, margin: 18.9 }
-  },
-];
+const emptyRule = {
+  name: '',
+  description: '',
+  type: 'competitive',
+  category: '',
+  adjustment: 0,
+  status: 'active',
+};
 
-const mockPriceHistory = [
-  { date: '2024-01-10', avgPrice: 450, rules: 3, adjustments: 15 },
-  { date: '2024-01-11', avgPrice: 442, rules: 4, adjustments: 22 },
-  { date: '2024-01-12', avgPrice: 465, rules: 4, adjustments: 18 },
-  { date: '2024-01-13', avgPrice: 458, rules: 3, adjustments: 20 },
-  { date: '2024-01-14', avgPrice: 472, rules: 4, adjustments: 25 },
-  { date: '2024-01-15', avgPrice: 468, rules: 4, adjustments: 19 },
-  { date: '2024-01-16', avgPrice: 475, rules: 4, adjustments: 23 },
-];
+function RuleDialog({ open, mode, initialValue, onClose, onSubmit }) {
+  const [form, setForm] = useState(emptyRule);
 
-function PricingRuleDialog({ open, onClose, rule, onSave }) {
-  const [formData, setFormData] = useState(
-    rule || {
-      name: '',
-      description: '',
-      type: 'competitive',
-      category: '',
-      adjustment: 0,
-      conditions: [],
-      status: 'active',
+  useEffect(() => {
+    if (!initialValue) {
+      setForm(emptyRule);
+      return;
     }
-  );
+    setForm({
+      name: initialValue.name || '',
+      description: initialValue.description || '',
+      type: initialValue.type || 'competitive',
+      category: initialValue.category || '',
+      adjustment: initialValue.adjustment ?? 0,
+      status: initialValue.status || 'active',
+    });
+  }, [initialValue]);
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    onSave(formData);
-    onClose();
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleChange = (field) => (event) => {
-    setFormData({ ...formData, [field]: event.target.value });
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    onSubmit({
+      name: form.name,
+      description: form.description || null,
+      type: form.type,
+      category: form.category || null,
+      adjustment: Number(form.adjustment),
+      status: form.status,
+    });
   };
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth="md" fullWidth>
+    <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
       <form onSubmit={handleSubmit}>
-        <DialogTitle>
-          {rule ? 'Edit Pricing Rule' : 'Create New Pricing Rule'}
-        </DialogTitle>
+        <DialogTitle>{mode === 'edit' ? 'Edit Pricing Rule' : 'Create Pricing Rule'}</DialogTitle>
         <DialogContent>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
+          <Grid container spacing={2} sx={{ mt: 0.5 }}>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Rule Name"
-                value={formData.name}
-                onChange={handleChange('name')}
-                required
-              />
+              <TextField fullWidth required label="Rule Name" name="name" value={form.name} onChange={handleChange} />
             </Grid>
             <Grid item xs={12}>
-              <TextField
-                fullWidth
-                label="Description"
-                value={formData.description}
-                onChange={handleChange('description')}
-                multiline
-                rows={2}
-                required
-              />
+              <TextField fullWidth label="Description" name="description" value={form.description} onChange={handleChange} multiline minRows={2} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Rule Type</InputLabel>
-                <Select
-                  value={formData.type}
-                  onChange={handleChange('type')}
-                  label="Rule Type"
-                  required
-                >
-                  <MenuItem value="competitive">Competitive Pricing</MenuItem>
-                  <MenuItem value="dynamic">Dynamic Pricing</MenuItem>
-                  <MenuItem value="clearance">Clearance Pricing</MenuItem>
-                  <MenuItem value="fixed">Fixed Markup</MenuItem>
-                  <MenuItem value="bundle">Bundle Pricing</MenuItem>
-                </Select>
-              </FormControl>
+              <TextField select fullWidth label="Type" name="type" value={form.type} onChange={handleChange}>
+                <MenuItem value="competitive">Competitive</MenuItem>
+                <MenuItem value="fixed">Fixed</MenuItem>
+                <MenuItem value="dynamic">Dynamic</MenuItem>
+                <MenuItem value="clearance">Clearance</MenuItem>
+              </TextField>
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Category</InputLabel>
-                <Select
-                  value={formData.category}
-                  onChange={handleChange('category')}
-                  label="Category"
-                  required
-                >
-                  <MenuItem value="All Categories">All Categories</MenuItem>
-                  <MenuItem value="Electronics">Electronics</MenuItem>
-                  <MenuItem value="Computers">Computers</MenuItem>
-                  <MenuItem value="Audio">Audio</MenuItem>
-                  <MenuItem value="Gaming">Gaming</MenuItem>
-                </Select>
-              </FormControl>
+              <TextField fullWidth label="Category" name="category" value={form.category} onChange={handleChange} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <TextField
-                fullWidth
-                label="Price Adjustment"
-                type="number"
-                value={formData.adjustment}
-                onChange={handleChange('adjustment')}
-                InputProps={{
-                  endAdornment: <InputAdornment position="end">%</InputAdornment>,
-                }}
-                required
-              />
+              <TextField fullWidth label="Adjustment (%)" name="adjustment" type="number" value={form.adjustment} onChange={handleChange} />
             </Grid>
             <Grid item xs={12} md={6}>
-              <FormControl fullWidth>
-                <InputLabel>Status</InputLabel>
-                <Select
-                  value={formData.status}
-                  onChange={handleChange('status')}
-                  label="Status"
-                >
-                  <MenuItem value="active">Active</MenuItem>
-                  <MenuItem value="inactive">Inactive</MenuItem>
-                  <MenuItem value="draft">Draft</MenuItem>
-                </Select>
-              </FormControl>
+              <TextField select fullWidth label="Status" name="status" value={form.status} onChange={handleChange}>
+                <MenuItem value="active">Active</MenuItem>
+                <MenuItem value="inactive">Inactive</MenuItem>
+              </TextField>
             </Grid>
           </Grid>
         </DialogContent>
         <DialogActions>
           <Button onClick={onClose}>Cancel</Button>
-          <Button type="submit" variant="contained">
-            {rule ? 'Update' : 'Create'} Rule
-          </Button>
+          <Button type="submit" variant="contained">{mode === 'edit' ? 'Update' : 'Create'}</Button>
         </DialogActions>
       </form>
     </Dialog>
   );
 }
 
-function PricingRuleCard({ rule, onEdit, onToggle, onDelete }) {
-  const getRuleTypeColor = (type) => {
-    switch (type) {
-      case 'competitive': return 'primary';
-      case 'dynamic': return 'secondary';
-      case 'clearance': return 'warning';
-      case 'fixed': return 'success';
-      default: return 'default';
-    }
-  };
-
-  const getImpactColor = (value) => value > 0 ? 'success.main' : 'error.main';
-
-  return (
-    <Card sx={{ height: '100%' }}>
-      <CardContent>
-        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2 }}>
-          <Box sx={{ flex: 1 }}>
-            <Typography variant="h6" gutterBottom>
-              {rule.name}
-            </Typography>
-            <Typography variant="body2" color="textSecondary" sx={{ mb: 2 }}>
-              {rule.description}
-            </Typography>
-          </Box>
-          <FormControlLabel
-            control={
-              <Switch
-                checked={rule.status === 'active'}
-                onChange={() => onToggle(rule.id)}
-                color="primary"
-              />
-            }
-            label=""
-          />
-        </Box>
-
-        <Box sx={{ mb: 2 }}>
-          <Chip
-            label={rule.type}
-            color={getRuleTypeColor(rule.type)}
-            size="small"
-            sx={{ mr: 1 }}
-          />
-          <Chip
-            label={rule.category}
-            variant="outlined"
-            size="small"
-            sx={{ mr: 1 }}
-          />
-          <Chip
-            label={`${rule.adjustment > 0 ? '+' : ''}${rule.adjustment}%`}
-            color={rule.adjustment > 0 ? 'success' : 'error'}
-            size="small"
-          />
-        </Box>
-
-        <Divider sx={{ my: 2 }} />
-
-        <Grid container spacing={2}>
-          <Grid item xs={6}>
-            <Typography variant="body2" color="textSecondary">
-              Products Affected
-            </Typography>
-            <Typography variant="h6">
-              {rule.products}
-            </Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="body2" color="textSecondary">
-              Last Triggered
-            </Typography>
-            <Typography variant="body2">
-              {rule.lastTriggered}
-            </Typography>
-          </Grid>
-        </Grid>
-
-        {rule.impact && (
-          <Box sx={{ mt: 2 }}>
-            <Typography variant="body2" color="textSecondary" gutterBottom>
-              Impact
-            </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                <TrendingUp sx={{ color: getImpactColor(rule.impact.revenue), mr: 0.5, fontSize: 16 }} />
-                <Typography variant="body2" sx={{ color: getImpactColor(rule.impact.revenue) }}>
-                  Revenue: {rule.impact.revenue > 0 ? '+' : ''}{rule.impact.revenue}%
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                {rule.impact.margin > 0 ? (
-                  <TrendingUp sx={{ color: 'success.main', mr: 0.5, fontSize: 16 }} />
-                ) : (
-                  <TrendingDown sx={{ color: 'error.main', mr: 0.5, fontSize: 16 }} />
-                )}
-                <Typography variant="body2" sx={{ color: getImpactColor(rule.impact.margin) }}>
-                  Margin: {rule.impact.margin > 0 ? '+' : ''}{rule.impact.margin}%
-                </Typography>
-              </Box>
-            </Box>
-          </Box>
-        )}
-      </CardContent>
-      <CardActions>
-        <Button size="small" onClick={() => onEdit(rule)} startIcon={<Edit />}>
-          Edit
-        </Button>
-        <Button size="small" onClick={() => onDelete(rule.id)} startIcon={<Delete />} color="error">
-          Delete
-        </Button>
-      </CardActions>
-    </Card>
-  );
-}
-
-function TabPanel({ children, value, index, ...other }) {
-  return (
-    <div
-      role="tabpanel"
-      hidden={value !== index}
-      id={`pricing-tabpanel-${index}`}
-      aria-labelledby={`pricing-tab-${index}`}
-      {...other}
-    >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
-    </div>
-  );
-}
-
 function Pricing() {
-  const [rules, setRules] = useState(mockPricingRules);
+  const [rules, setRules] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [selectedProductId, setSelectedProductId] = useState('');
+  const [recommendation, setRecommendation] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [selectedRule, setSelectedRule] = useState(null);
-  const [tabValue, setTabValue] = useState(0);
+  const [editingRule, setEditingRule] = useState(null);
 
-  const handleAddRule = () => {
-    setSelectedRule(null);
-    setDialogOpen(true);
-  };
-
-  const handleEditRule = (rule) => {
-    setSelectedRule(rule);
-    setDialogOpen(true);
-  };
-
-  const handleToggleRule = (ruleId) => {
-    setRules(rules.map(rule =>
-      rule.id === ruleId
-        ? { ...rule, status: rule.status === 'active' ? 'inactive' : 'active' }
-        : rule
-    ));
-  };
-
-  const handleDeleteRule = (ruleId) => {
-    setRules(rules.filter(rule => rule.id !== ruleId));
-  };
-
-  const handleSaveRule = (ruleData) => {
-    if (selectedRule) {
-      setRules(rules.map(rule =>
-        rule.id === selectedRule.id
-          ? { ...rule, ...ruleData }
-          : rule
-      ));
-    } else {
-      const newRule = {
-        ...ruleData,
-        id: Math.max(...rules.map(r => r.id)) + 1,
-        products: 0,
-        lastTriggered: 'Never',
-        impact: { revenue: 0, margin: 0 }
-      };
-      setRules([...rules, newRule]);
+  const load = async () => {
+    setLoading(true);
+    setError('');
+    try {
+      const [rulesResponse, productsResponse] = await Promise.all([
+        pricingAPI.getRules(),
+        productAPI.getAll(),
+      ]);
+      setRules(rulesResponse.data || []);
+      setProducts(productsResponse.data || []);
+      if (!selectedProductId && (productsResponse.data || []).length > 0) {
+        setSelectedProductId(productsResponse.data[0].id);
+      }
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to load pricing data');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const activeRules = rules.filter(rule => rule.status === 'active');
-  const inactiveRules = rules.filter(rule => rule.status !== 'active');
+  useEffect(() => {
+    load();
+  }, []);
+
+  const onCreate = () => {
+    setEditingRule(null);
+    setDialogOpen(true);
+  };
+
+  const onEdit = (rule) => {
+    setEditingRule(rule);
+    setDialogOpen(true);
+  };
+
+  const onDelete = async (ruleId) => {
+    if (!window.confirm('Delete this pricing rule?')) return;
+    try {
+      await pricingAPI.deleteRule(ruleId);
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to delete pricing rule');
+    }
+  };
+
+  const onSubmit = async (payload) => {
+    try {
+      if (editingRule) {
+        await pricingAPI.updateRule(editingRule.id, payload);
+      } else {
+        await pricingAPI.createRule(payload);
+      }
+      setDialogOpen(false);
+      await load();
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to save pricing rule');
+    }
+  };
+
+  const onRecommend = async () => {
+    if (!selectedProductId) return;
+    try {
+      const response = await pricingAPI.getRecommendation(selectedProductId);
+      setRecommendation(response.data);
+    } catch (err) {
+      setError(err.response?.data?.detail || 'Failed to compute recommendation');
+    }
+  };
+
+  const activeCount = useMemo(() => rules.filter((rule) => rule.status === 'active').length, [rules]);
 
   return (
     <Box sx={{ flexGrow: 1 }}>
       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h4">
-          Pricing Management
-        </Typography>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleAddRule}
-        >
-          Create Rule
-        </Button>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Typography variant="h4">Pricing</Typography>
+          <Chip label={`${rules.length} rules`} color="info" variant="outlined" />
+          <Chip label={`${activeCount} active`} color="success" variant="outlined" />
+        </Box>
+        <Button variant="contained" startIcon={<Add />} onClick={onCreate}>Create Rule</Button>
       </Box>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
-        <Typography variant="body2">
-          You have {activeRules.length} active pricing rules affecting {rules.reduce((sum, rule) => sum + rule.products, 0)} products.
-          Rules are evaluated every 5 minutes.
-        </Typography>
-      </Alert>
+      {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
 
-      <Box sx={{ borderBottom: 1, borderColor: 'divider' }}>
-        <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-          <Tab label={`Active Rules (${activeRules.length})`} />
-          <Tab label={`Inactive Rules (${inactiveRules.length})`} />
-          <Tab label="Performance" />
-        </Tabs>
-      </Box>
-
-      <TabPanel value={tabValue} index={0}>
-        <Grid container spacing={3}>
-          {activeRules.map((rule) => (
-            <Grid item xs={12} md={6} lg={4} key={rule.id}>
-              <PricingRuleCard
-                rule={rule}
-                onEdit={handleEditRule}
-                onToggle={handleToggleRule}
-                onDelete={handleDeleteRule}
-              />
-            </Grid>
-          ))}
-          {activeRules.length === 0 && (
-            <Grid item xs={12}>
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="h6" color="textSecondary">
-                  No active pricing rules
-                </Typography>
-                <Typography variant="body2" color="textSecondary" sx={{ mt: 1 }}>
-                  Create your first pricing rule to automate price adjustments
-                </Typography>
-                <Button
-                  variant="outlined"
-                  startIcon={<Add />}
-                  onClick={handleAddRule}
-                  sx={{ mt: 2 }}
+      <Grid container spacing={3} sx={{ mb: 3 }}>
+        <Grid item xs={12} md={7}>
+          <Paper sx={{ p: 2 }}>
+            <Typography variant="h6" gutterBottom>Rule-Based Recommendation</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} md={8}>
+                <TextField
+                  select
+                  fullWidth
+                  label="Product"
+                  value={selectedProductId}
+                  onChange={(event) => setSelectedProductId(event.target.value)}
                 >
-                  Create Rule
+                  {products.map((product) => (
+                    <MenuItem key={product.id} value={product.id}>{product.name}</MenuItem>
+                  ))}
+                </TextField>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <Button fullWidth variant="outlined" startIcon={<PlayArrow />} onClick={onRecommend} sx={{ height: '56px' }}>
+                  Recommend
                 </Button>
-              </Paper>
+              </Grid>
             </Grid>
-          )}
-        </Grid>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={1}>
-        <Grid container spacing={3}>
-          {inactiveRules.map((rule) => (
-            <Grid item xs={12} md={6} lg={4} key={rule.id}>
-              <PricingRuleCard
-                rule={rule}
-                onEdit={handleEditRule}
-                onToggle={handleToggleRule}
-                onDelete={handleDeleteRule}
-              />
-            </Grid>
-          ))}
-          {inactiveRules.length === 0 && (
-            <Grid item xs={12}>
-              <Paper sx={{ p: 3, textAlign: 'center' }}>
-                <Typography variant="h6" color="textSecondary">
-                  No inactive rules
-                </Typography>
-                <Typography variant="body2" color="textSecondary">
-                  All your pricing rules are currently active
-                </Typography>
-              </Paper>
-            </Grid>
-          )}
-        </Grid>
-      </TabPanel>
-
-      <TabPanel value={tabValue} index={2}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Pricing Performance Overview
-              </Typography>
-              <Typography variant="body2" color="textSecondary" sx={{ mb: 3 }}>
-                Track the impact of your pricing rules on revenue and margins
-              </Typography>
-              {/* Here you would add charts showing pricing performance */}
-              <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'grey.100' }}>
-                <Typography variant="body2" color="textSecondary">
-                  Performance charts will be displayed here
-                </Typography>
+            {recommendation && (
+              <Box sx={{ mt: 2 }}>
+                <Typography>Current price: {recommendation.current_price}</Typography>
+                <Typography>Suggested price: {recommendation.suggested_price}</Typography>
+                <Typography color="text.secondary">Reason: {recommendation.reason}</Typography>
               </Box>
-            </Paper>
-          </Grid>
-          <Grid item xs={12} md={4}>
-            <Paper sx={{ p: 3 }}>
-              <Typography variant="h6" gutterBottom>
-                Quick Stats
-              </Typography>
-              <List>
-                <ListItem>
-                  <ListItemText
-                    primary="Total Revenue Impact"
-                    secondary={
-                      <Typography color="success.main">
-                        +15.2% this month
-                      </Typography>
-                    }
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Average Margin"
-                    secondary={
-                      <Typography color="success.main">
-                        +4.8% improvement
-                      </Typography>
-                    }
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Rules Triggered"
-                    secondary="127 times today"
-                  />
-                </ListItem>
-                <ListItem>
-                  <ListItemText
-                    primary="Price Adjustments"
-                    secondary="89 products updated"
-                  />
-                </ListItem>
-              </List>
-            </Paper>
-          </Grid>
+            )}
+          </Paper>
         </Grid>
-      </TabPanel>
+      </Grid>
 
-      <PricingRuleDialog
+      <Paper>
+        <TableContainer>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>Type</TableCell>
+                <TableCell>Category</TableCell>
+                <TableCell>Adjustment</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell align="right">Actions</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {!loading && rules.map((rule) => (
+                <TableRow key={rule.id} hover>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 600 }}>{rule.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">{rule.description || '-'}</Typography>
+                  </TableCell>
+                  <TableCell>{rule.type}</TableCell>
+                  <TableCell>{rule.category || '-'}</TableCell>
+                  <TableCell>{rule.adjustment}%</TableCell>
+                  <TableCell>
+                    <Chip label={rule.status} color={rule.status === 'active' ? 'success' : 'default'} size="small" />
+                  </TableCell>
+                  <TableCell align="right">
+                    <IconButton size="small" onClick={() => onEdit(rule)}><Edit fontSize="small" /></IconButton>
+                    <IconButton size="small" color="error" onClick={() => onDelete(rule.id)}><Delete fontSize="small" /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        {!loading && rules.length === 0 && (
+          <Box sx={{ p: 3 }}>
+            <Typography color="text.secondary">No pricing rules yet.</Typography>
+          </Box>
+        )}
+        {loading && (
+          <Box sx={{ p: 3 }}>
+            <Typography>Loading pricing data...</Typography>
+          </Box>
+        )}
+      </Paper>
+
+      <RuleDialog
         open={dialogOpen}
+        mode={editingRule ? 'edit' : 'create'}
+        initialValue={editingRule}
         onClose={() => setDialogOpen(false)}
-        rule={selectedRule}
-        onSave={handleSaveRule}
+        onSubmit={onSubmit}
       />
     </Box>
   );

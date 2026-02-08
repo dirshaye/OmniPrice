@@ -1,22 +1,21 @@
 import React, { useState } from 'react';
 import {
+  Alert,
   Box,
+  Button,
+  CircularProgress,
+  Link,
   Paper,
   TextField,
-  Button,
   Typography,
-  Link,
-  Alert,
-  CircularProgress,
 } from '@mui/material';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 function RegisterPage() {
   const [formData, setFormData] = useState({
-    username: '',
-    email: '',
     full_name: '',
+    email: '',
     password: '',
     confirmPassword: '',
   });
@@ -24,35 +23,37 @@ function RegisterPage() {
   const [loading, setLoading] = useState(false);
   const { register } = useAuth();
   const navigate = useNavigate();
+  const errorText = typeof error === 'string' ? error : 'Registration failed';
 
-  const handleChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    });
+  const handleChange = (event) => {
+    setFormData((prev) => ({ ...prev, [event.target.name]: event.target.value }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
+  const handleSubmit = async (event) => {
+    event.preventDefault();
     setError('');
 
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
-      setLoading(false);
       return;
     }
 
-    const { confirmPassword, ...userData } = formData;
-    const result = await register(userData);
-    
-    if (result.success) {
-      navigate('/login');
-    } else {
-      setError(result.error);
-    }
-    
+    setLoading(true);
+    const payload = {
+      full_name: formData.full_name || null,
+      email: formData.email,
+      password: formData.password,
+    };
+
+    const result = await register(payload);
     setLoading(false);
+
+    if (!result.success) {
+      setError(result.error);
+      return;
+    }
+
+    navigate('/login', { replace: true });
   };
 
   return (
@@ -66,15 +67,7 @@ function RegisterPage() {
         p: 2,
       }}
     >
-      <Paper
-        elevation={10}
-        sx={{
-          p: 4,
-          width: '100%',
-          maxWidth: 400,
-          borderRadius: 2,
-        }}
-      >
+      <Paper elevation={10} sx={{ p: 4, width: '100%', maxWidth: 420, borderRadius: 2 }}>
         <Box sx={{ textAlign: 'center', mb: 3 }}>
           <Typography variant="h4" gutterBottom sx={{ color: 'primary.main', fontWeight: 'bold' }}>
             OmniPriceX
@@ -83,27 +76,13 @@ function RegisterPage() {
             Create Account
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Join the pricing revolution
+            Start tracking competitor prices
           </Typography>
         </Box>
 
-        {error && (
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-        )}
+        {error && <Alert severity="error" sx={{ mb: 2 }}>{errorText}</Alert>}
 
         <Box component="form" onSubmit={handleSubmit}>
-          <TextField
-            fullWidth
-            label="Username"
-            name="username"
-            value={formData.username}
-            onChange={handleChange}
-            margin="normal"
-            required
-            autoFocus
-          />
           <TextField
             fullWidth
             label="Full Name"
@@ -111,7 +90,6 @@ function RegisterPage() {
             value={formData.full_name}
             onChange={handleChange}
             margin="normal"
-            required
           />
           <TextField
             fullWidth
@@ -122,6 +100,7 @@ function RegisterPage() {
             onChange={handleChange}
             margin="normal"
             required
+            autoFocus
           />
           <TextField
             fullWidth
@@ -143,14 +122,8 @@ function RegisterPage() {
             margin="normal"
             required
           />
-          <Button
-            type="submit"
-            fullWidth
-            variant="contained"
-            sx={{ mt: 3, mb: 2, py: 1.5 }}
-            disabled={loading}
-          >
-            {loading ? <CircularProgress size={24} /> : 'Create Account'}
+          <Button type="submit" fullWidth variant="contained" sx={{ mt: 3, mb: 2, py: 1.4 }} disabled={loading}>
+            {loading ? <CircularProgress size={22} /> : 'Create Account'}
           </Button>
           <Box sx={{ textAlign: 'center' }}>
             <Link component={RouterLink} to="/login" variant="body2">

@@ -1,1 +1,0 @@
-# Competitor Module Schemas

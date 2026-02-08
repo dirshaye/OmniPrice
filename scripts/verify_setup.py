@@ -1,75 +1,118 @@
-import subprocess
-import time
-import requests
-import sys
+#!/usr/bin/env python3
+"""Simple local verification script for OmniPrice backend."""
+
+from __future__ import annotations
+
 import os
-import signal
+import subprocess
+import sys
+import time
+from typing import Any
 
-def run_verification():
-    print("🚀 Starting server...")
-    # Start uvicorn in a separate process
-    process = subprocess.Popen(
-        ["uvicorn", "omniprice.main:app", "--port", "8000"],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        preexec_fn=os.setsid # Create a new session group
-    )
-    
-    try:
-        # Wait for server to start
-        print("⏳ Waiting for server to start...")
-        time.sleep(5)
-        
-        # Test Health Check (Root)
+import requests
+
+BASE_URL = os.getenv("VERIFY_BASE_URL", "http://localhost:8000")
+
+
+def _wait_for_server(timeout_seconds: int = 20) -> bool:
+    deadline = time.time() + timeout_seconds
+    while time.time() < deadline:
         try:
-            response = requests.get("http://localhost:8000/")
-            print(f"✅ Root endpoint: {response.status_code}")
-        except Exception as e:
-            print(f"❌ Root endpoint failed: {e}")
+            response = requests.get(f"{BASE_URL}/health", timeout=2)
+            if response.status_code == 200:
+                return True
+        except requests.RequestException:
+            pass
+        time.sleep(1)
+    return False
 
-        # Test Registration
-        print("👤 Testing Registration...")
-        user_data = {
-            "email": "verify_user@example.com",
-            "password": "securepassword123",
-            "full_name": "Verification User"
-        }
-        
-        response = requests.post(
-            "http://localhost:8000/api/v1/auth/register",
-            json=user_data
-        )
-        
-        if response.status_code == 201:
-            print(f"✅ Registration successful: {response.json()}")
-        elif response.status_code == 400 and "already exists" in response.text:
-             print(f"✅ User already exists (Test passed previously)")
-        else:
-            print(f"❌ Registration failed: {response.status_code} - {response.text}")
 
-        # Test Login
-        print("🔑 Testing Login...")
-        login_data = {
-            "username": "verify_user@example.com", # OAuth2 form uses 'username' for email
-            "password": "securepassword123"
-        }
-        
-        response = requests.post(
-            "http://localhost:8000/api/v1/auth/login",
-            data=login_data
+def _print_result(name: str, ok: bool, detail: str = "") -> None:
+    status = "PASS" if ok else "FAIL"
+    suffix = f" - {detail}" if detail else ""
+    print(f"[{status}] {name}{suffix}")
+
+
+def _json_request(method: str, path: str, payload: dict[str, Any] | None = None) -> requests.Response:
+    return requests.request(method, f"{BASE_URL}{path}", json=payload, timeout=10)
+
+
+def main() -> int:
+    server_process: subprocess.Popen[str] | None = None
+
+    try:
+        # Start local server if not already up.
+        try:
+            health = requests.get(f"{BASE_URL}/health", timeout=2)
+            already_running = health.status_code == 200
+        except requests.RequestException:
+            already_running = False
+
+        if not already_running:
+            print("Starting local backend server...")
+            server_process = subprocess.Popen(
+                [sys.executable, "-m", "uvicorn", "omniprice.main:app", "--host", "127.0.0.1", "--port", "8000"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            if not _wait_for_server():
+                _print_result("backend startup", False, "server did not become healthy")
+                return 1
+
+        # Health
+        health_resp = requests.get(f"{BASE_URL}/health", timeout=5)
+        _print_result("GET /health", health_resp.status_code == 200, str(health_resp.status_code))
+
+        # Register
+        email = f"verify_{int(time.time())}@example.com"
+        register_resp = _json_request(
+            "POST",
+            "/api/v1/auth/register",
+            {
+                "email": email,
+                "password": "securepassword123",
+                "full_name": "Verify User",
+            },
         )
-        
-        if response.status_code == 200:
-            token = response.json()
-            print(f"✅ Login successful. Token: {token['access_token'][:20]}...")
-        else:
-            print(f"❌ Login failed: {response.status_code} - {response.text}")
+        _print_result("POST /api/v1/auth/register", register_resp.status_code == 201, str(register_resp.status_code))
+
+        # Login JSON
+        login_resp = _json_request(
+            "POST",
+            "/api/v1/auth/login/json",
+            {
+                "email": email,
+                "password": "securepassword123",
+            },
+        )
+        login_ok = login_resp.status_code == 200 and "access_token" in login_resp.json()
+        _print_result("POST /api/v1/auth/login/json", login_ok, str(login_resp.status_code))
+
+        # /me
+        if login_ok:
+            token = login_resp.json()["access_token"]
+            me_resp = requests.get(
+                f"{BASE_URL}/api/v1/auth/me",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=10,
+            )
+            _print_result("GET /api/v1/auth/me", me_resp.status_code == 200, str(me_resp.status_code))
+
+        all_pass = (
+            health_resp.status_code == 200
+            and register_resp.status_code == 201
+            and login_ok
+        )
+        return 0 if all_pass else 1
 
     finally:
-        print("🛑 Stopping server...")
-        os.killpg(os.getpgid(process.pid), signal.SIGTERM)
-        # process.terminate()
-        # process.wait()
+        if server_process is not None:
+            server_process.terminate()
+            try:
+                server_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                server_process.kill()
+
 
 if __name__ == "__main__":
-    run_verification()
+    raise SystemExit(main())

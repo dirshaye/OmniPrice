@@ -1,0 +1,14 @@
+aws_region       = "eu-central-1"
+environment      = "dev"
+project_name     = "omniprice"
+ssh_allowed_cidr = "203.0.113.10/32" # replace with your IP/CIDR
+
+# Optional
+# availability_zone = "eu-central-1a"
+# ec2_key_name      = "your-existing-keypair"
+# frontend_bucket_name = "your-unique-frontend-bucket-name"
+# enable_api_port = true
+
+# tags = {
+#   Owner = "dirshaye"
+# }
