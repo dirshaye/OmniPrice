@@ -58,14 +58,7 @@ class Settings(BaseSettings):
     
     # CORS Settings
     # Technical Note: CORS allows frontend (different domain) to call our API
-    CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",  # React development server
-        "http://127.0.0.1:3000",
-        "http://0.0.0.0:3000",
-        "http://localhost:8000",  # API itself
-        "http://127.0.0.1:8000",
-        "http://0.0.0.0:8000",
-    ]
+    CORS_ORIGINS: list[str] = ["*"]
     
     # External API Keys
     GEMINI_API_KEY: Optional[str] = None  # Google Gemini AI
