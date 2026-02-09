@@ -29,35 +29,32 @@ logger = logging.getLogger(__name__)
 async def init_db():
     """
     Initialize database connection and Beanie ODM
-    
-    Technical Explanation:
-    1. Creates AsyncIOMotorClient (non-blocking MongoDB driver)
-    2. Selects the specific database
-    3. Initializes Beanie with the database and list of document models
     """
-    try:
-        client = AsyncIOMotorClient(settings.MONGODB_URL)
-        database = client[settings.MONGODB_DB_NAME]
-        
-        # Initialize Beanie with the database and document models
-        # We will uncomment models as we implement them
-        await init_beanie(
-            database=database,
-            document_models=[
-                User,
-                Competitor,
-                PriceHistory,
-                Product,
-                PricingRule,
-                ScrapeExecution,
-            ]
-        )
-        
-        logger.info("✅ Database connection established successfully")
-        
-    except Exception as e:
-        logger.error(f"❌ Database connection failed: {e}")
-        raise e
+    for attempt in range(10):
+        try:
+            client = AsyncIOMotorClient(settings.MONGODB_URL)
+            database = client[settings.MONGODB_DB_NAME]
+            
+            await init_beanie(
+                database=database,
+                document_models=[
+                    User,
+                    Competitor,
+                    PriceHistory,
+                    Product,
+                    PricingRule,
+                    ScrapeExecution,
+                ]
+            )
+            
+            logger.info("✅ Database connection established successfully")
+            return
+            
+        except Exception as e:
+            logger.error(f"❌ Database connection failed (attempt {attempt + 1}/10): {e}")
+            if attempt == 9:
+                raise e
+            await asyncio.sleep(5)
 # Technical Note: These are module-level variables (singletons)
 _mongo_client: Optional[AsyncIOMotorClient] = None
 _database: Optional[AsyncIOMotorDatabase] = None

@@ -137,7 +137,21 @@ async def run_consumer() -> None:
         raise RuntimeError("aio-pika is required for scrape worker") from exc
 
     await init_db()
-    connection = await aio_pika.connect_robust(settings.RABBITMQ_URL)
+
+    # Retry connection to RabbitMQ (essential for Cloud/Docker startup)
+    connection = None
+    for attempt in range(10):
+        try:
+            connection = await aio_pika.connect_robust(settings.RABBITMQ_URL)
+            logger.info("Successfully connected to RabbitMQ")
+            break
+        except Exception as exc:
+            logger.warning("RabbitMQ connection failed (attempt %s/10): %s", attempt + 1, exc)
+            await asyncio.sleep(5)
+    
+    if not connection:
+        raise RuntimeError("Failed to connect to RabbitMQ after 10 attempts")
+
     channel = await connection.channel()
     await channel.set_qos(prefetch_count=10)
     queue = await channel.declare_queue(settings.RABBITMQ_QUEUE_SCRAPE, durable=True)
