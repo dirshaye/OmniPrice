@@ -11,6 +11,7 @@ Technical Explanation:
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorDatabase
 from beanie import init_beanie
 import logging
+import asyncio
 from typing import Optional
 from pymongo.errors import ConnectionFailure
 
