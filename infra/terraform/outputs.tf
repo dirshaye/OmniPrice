@@ -22,3 +22,13 @@ output "frontend_website_url" {
   description = "S3 static website endpoint"
   value       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
 }
+
+output "ecr_repository_url_backend" {
+  description = "ECR repository URL for backend"
+  value       = aws_ecr_repository.backend.repository_url
+}
+
+output "ecr_repository_url_worker" {
+  description = "ECR repository URL for scrape worker"
+  value       = aws_ecr_repository.worker.repository_url
+}
