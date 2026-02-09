@@ -9,8 +9,7 @@ env:
   AWS_REGION: eu-central-1
   ECR_REPOSITORY_BACKEND: omniprice-dev-backend
   ECR_REPOSITORY_WORKER: omniprice-dev-worker
-  S3_BUCKET_FRONTEND: omniprice-dev-frontend-5dcf2b4b  # Updated with your actual bucket name
-  # In a real setup, we'd fetch these names dynamically or use stable names
+  S3_BUCKET_FRONTEND: omniprice-dev-frontend-5d25a804
 
 permissions:
   id-token: write   # This is required for requesting the JWT
@@ -58,9 +57,9 @@ jobs:
   deploy-frontend:
     name: Deploy Frontend to S3
     runs-on: ubuntu-latest
-    # We need the EC2 IP for the build. In a real setup, use a domain name (Route53).
+    # We need the ALB DNS for the build.
     env:
-      REACT_APP_API_URL: http://3.68.197.143:8000 
+      REACT_APP_API_URL: http://omniprice-dev-alb-55848526.eu-central-1.elb.amazonaws.com
     steps:
     - name: Checkout code
       uses: actions/checkout@v4

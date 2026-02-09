@@ -1,16 +1,16 @@
-output "ec2_instance_id" {
-  description = "EC2 instance ID"
-  value       = aws_instance.app.id
+output "alb_dns_name" {
+  description = "DNS name of the Load Balancer"
+  value       = aws_lb.main.dns_name
 }
 
-output "ec2_public_ip" {
-  description = "Public IP address of EC2 instance"
-  value       = aws_instance.app.public_ip
+output "ecr_repository_url_backend" {
+  description = "ECR repository URL for backend"
+  value       = aws_ecr_repository.backend.repository_url
 }
 
-output "ec2_public_dns" {
-  description = "Public DNS of EC2 instance"
-  value       = aws_instance.app.public_dns
+output "ecr_repository_url_worker" {
+  description = "ECR repository URL for scrape worker"
+  value       = aws_ecr_repository.worker.repository_url
 }
 
 output "frontend_bucket_name" {
@@ -23,12 +23,11 @@ output "frontend_website_url" {
   value       = "http://${aws_s3_bucket_website_configuration.frontend.website_endpoint}"
 }
 
-output "ecr_repository_url_backend" {
-  description = "ECR repository URL for backend"
-  value       = aws_ecr_repository.backend.repository_url
+output "github_actions_access_key_id" {
+  value = aws_iam_access_key.github_actions.id
 }
 
-output "ecr_repository_url_worker" {
-  description = "ECR repository URL for scrape worker"
-  value       = aws_ecr_repository.worker.repository_url
+output "github_actions_secret_access_key" {
+  value     = aws_iam_access_key.github_actions.secret
+  sensitive = true
 }
