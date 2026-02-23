@@ -9,7 +9,7 @@ env:
   AWS_REGION: eu-central-1
   ECR_REPOSITORY_BACKEND: omniprice-dev-backend
   ECR_REPOSITORY_WORKER: omniprice-dev-worker
-  S3_BUCKET_FRONTEND: omniprice-dev-frontend-349eaf47
+  S3_BUCKET_FRONTEND: omniprice-dev-frontend-f907d503
 
 permissions:
   id-token: write   # This is required for requesting the JWT
@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     # We need the ALB DNS for the build.
     env:
-      REACT_APP_API_URL: http://omniprice-dev-alb-2112143884.eu-central-1.elb.amazonaws.com
+      REACT_APP_API_URL: http://3.71.163.13:8000
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
