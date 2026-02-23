@@ -64,10 +64,44 @@ resource "aws_iam_user_policy" "github_actions" {
     Version = "2012-10-17"
     Statement = [
       {
+        # Permission to sync to S3 Frontend
         Effect   = "Allow"
         Action   = "s3:*"
+        Resource = "*"
+      },
+      {
+        # Permission to push to ECR (Required for the 'build' part of CI/CD)
+        Effect   = "Allow"
+        Action   = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:GetRepositoryPolicy",
+          "ecr:DescribeRepositories",
+          "ecr:ListImages",
+          "ecr:DescribeImages",
+          "ecr:BatchGetImage",
+          "ecr:InitiateLayerUpload",
+          "ecr:UploadLayerPart",
+          "ecr:CompleteLayerUpload",
+          "ecr:PutImage"
+        ]
         Resource = "*"
       }
     ]
   })
+}
+
+# --- ECR Repositories (Restored to fix drift) ---
+
+resource "aws_ecr_repository" "backend" {
+  name                 = "${local.name_prefix}-backend"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = false
+}
+
+resource "aws_ecr_repository" "worker" {
+  name                 = "${local.name_prefix}-worker"
+  image_tag_mutability = "MUTABLE"
+  force_delete         = false
 }
