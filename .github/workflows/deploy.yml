@@ -59,7 +59,7 @@ jobs:
     runs-on: ubuntu-latest
     # We need the ALB DNS for the build.
     env:
-      REACT_APP_API_URL: http://3.71.163.13:8000
+      REACT_APP_API_URL: http://35.159.161.73:8000
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
