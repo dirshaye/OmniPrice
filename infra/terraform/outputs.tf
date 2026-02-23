@@ -1,21 +1,11 @@
-output "alb_dns_name" {
-  description = "DNS name of the Load Balancer"
-  value       = aws_lb.main.dns_name
+output "ec2_public_ip" {
+  description = "Public IP of the server"
+  value       = aws_instance.app.public_ip
 }
 
-output "ecr_repository_url_backend" {
-  description = "ECR repository URL for backend"
-  value       = aws_ecr_repository.backend.repository_url
-}
-
-output "ecr_repository_url_worker" {
-  description = "ECR repository URL for scrape worker"
-  value       = aws_ecr_repository.worker.repository_url
-}
-
-output "frontend_bucket_name" {
-  description = "S3 bucket name for frontend hosting"
-  value       = aws_s3_bucket.frontend.id
+output "ec2_public_dns" {
+  description = "Public DNS of the server"
+  value       = aws_instance.app.public_dns
 }
 
 output "frontend_website_url" {

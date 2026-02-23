@@ -1,3 +1,50 @@
+# IAM Roles for EC2
+
+resource "aws_iam_role" "ec2" {
+  name = "${local.name_prefix}-ec2-role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Action = "sts:AssumeRole"
+      Effect = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy_attachment" "ssm" {
+  role       = aws_iam_role.ec2.name
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+# Grant EC2 permission to read secrets from SSM
+resource "aws_iam_role_policy" "ec2_secrets" {
+  name = "${local.name_prefix}-ec2-secrets-policy"
+  role = aws_iam_role.ec2.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ssm:GetParameter",
+          "ssm:GetParameters"
+        ]
+        Resource = [
+          "arn:aws:ssm:eu-central-1:434676050343:parameter/omniprice/*"
+        ]
+      }
+    ]
+  })
+}
+
+resource "aws_iam_instance_profile" "ec2" {
+  name = "${local.name_prefix}-ec2-profile"
+  role = aws_iam_role.ec2.name
+}
+
 # --- GitHub Actions CI/CD User ---
 
 resource "aws_iam_user" "github_actions" {
@@ -17,40 +64,9 @@ resource "aws_iam_user_policy" "github_actions" {
     Version = "2012-10-17"
     Statement = [
       {
-        # Permission to authenticate with ECR
         Effect   = "Allow"
-        Action   = "ecr:GetAuthorizationToken"
+        Action   = "s3:*"
         Resource = "*"
-      },
-      {
-        # Permission to push to specific ECR Repositories
-        Effect = "Allow"
-        Action = [
-          "ecr:BatchCheckLayerAvailability",
-          "ecr:GetDownloadUrlForLayer",
-          "ecr:PutImage",
-          "ecr:InitiateLayerUpload",
-          "ecr:UploadLayerPart",
-          "ecr:CompleteLayerUpload"
-        ]
-        Resource = [
-          aws_ecr_repository.backend.arn,
-          aws_ecr_repository.worker.arn
-        ]
-      },
-      {
-        # Permission to sync to specific S3 Frontend Bucket
-        Effect = "Allow"
-        Action = [
-          "s3:PutObject",
-          "s3:GetObject",
-          "s3:ListBucket",
-          "s3:DeleteObject"
-        ]
-        Resource = [
-          aws_s3_bucket.frontend.arn,
-          "${aws_s3_bucket.frontend.arn}/*"
-        ]
       }
     ]
   })
